@@ -8,6 +8,7 @@ extends SceneTree
 const MAX_TICKS := 4000
 
 var failures: Array[String] = []
+var _turn := 0
 
 
 func _init() -> void:
@@ -78,6 +79,9 @@ func _play(world: World, state: GameState) -> void:
 	print("  leaves     %d" % state.leaves)
 	print("  buildings  %d" % world.count_buildings())
 	print("  biomes     %s" % _biome_summary(world))
+	print("  fresh water %d hexes" % _count_terrain(world, TileTypes.Terrain.WATER))
+	print("  avg temp   %.1f C" % _average_temperature(world))
+	print("  built      %s" % _building_summary(world))
 	print("  wildlife   %s" % str(state.wildlife.settled.keys()))
 	print("  pablo      %s at %s" % [state.pablo.mood_name(), state.pablo.position])
 
@@ -97,6 +101,13 @@ func _play(world: World, state: GameState) -> void:
 func _take_turn(world: World, state: GameState) -> void:
 	var order := ["purifier", "irrigator", "pump", "marsh_seeder",
 		"arboretum", "apiary", "solar_lens", "rain_caller"]
+
+	# Rotate the starting point. Without this the bot places the cheapest
+	# building forever and never gets round to pumps, so no fresh water is
+	# ever created and half the bestiary is unreachable.
+	_turn += 1
+	var offset := _turn % order.size()
+	order = order.slice(offset) + order.slice(0, offset)
 
 	for id in order:
 		var def: BuildingDef = Catalog.get_def(id)
@@ -182,6 +193,35 @@ func _verify_reclaim(world: World, state: GameState) -> void:
 
 	state.pablo.update(1.0)
 	print("  pablo           %s" % state.pablo.mood_name())
+
+
+func _building_summary(world: World) -> String:
+	var counts := {}
+	for b in world.buildings.values():
+		counts[b.def.id] = counts.get(b.def.id, 0) + 1
+	var parts: Array[String] = []
+	for id in counts:
+		parts.append("%s %d" % [id, counts[id]])
+	return ", ".join(parts)
+
+
+func _count_terrain(world: World, terrain: TileTypes.Terrain) -> int:
+	var n := 0
+	for t in world.all_tiles():
+		if t.terrain == terrain:
+			n += 1
+	return n
+
+
+func _average_temperature(world: World) -> float:
+	var sum := 0.0
+	var n := 0
+	for t in world.all_tiles():
+		if t.terrain == TileTypes.Terrain.OCEAN:
+			continue
+		sum += t.temperature
+		n += 1
+	return 0.0 if n == 0 else sum / float(n)
 
 
 func _biome_summary(world: World) -> String:

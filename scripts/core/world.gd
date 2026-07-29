@@ -314,7 +314,7 @@ func _desired_biome(t: Tile) -> TileTypes.Biome:
 		elif n.terrain == TileTypes.Terrain.WATER:
 			touches_fresh = true
 
-	if t.moisture >= 0.60 and (touches_fresh or touches_salt):
+	if t.moisture >= 0.70 and (touches_fresh or touches_salt):
 		# Fresh water wins where both meet. On an island almost everything
 		# touches the sea somewhere, and without this every marsh on the map
 		# turned to mangrove.
@@ -324,7 +324,7 @@ func _desired_biome(t: Tile) -> TileTypes.Biome:
 
 	# Forest wants rich soil and *moderate* water. Too wet and it drowns back
 	# to open ground; that upper bound is what makes over-irrigating a mistake.
-	if t.fertility >= 0.70 and t.moisture >= 0.30 and t.moisture < 0.60:
+	if t.fertility >= 0.70 and t.moisture >= 0.30 and t.moisture < 0.70:
 		return TileTypes.Biome.FOREST
 
 	# Warm and dry favours hardy scrub over lawn.
