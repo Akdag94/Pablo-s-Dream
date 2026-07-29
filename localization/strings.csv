@@ -84,3 +84,9 @@ REQ_TEMP_MIN,en az {0}°C,at least {0}°C
 REQ_TEMP_MAX,en fazla {0}°C,at most {0}°C
 REQ_SOLITUDE,yakınında makine olmamalı,no machinery nearby
 REQ_COMPANION,{0} önceden yerleşmiş olmalı,{0} already settled
+LEVEL_HOME,Yuva,Home
+LEVEL_HOME_BRIEF,"Pablo'nun adası. Ilıman, cömert, her şeyin başladığı yer.","Pablo's island. Temperate, generous, where all of this started."
+LEVEL_DELTA,Sıcak Delta,The Warm Delta
+LEVEL_DELTA_BRIEF,"Sıcak ve bol sulu. Burada zorluk kıtlık değil, ölçüyü tutmak.","Hot and awash with water. The difficulty here is restraint, not scarcity."
+LEVEL_HIGHLAND,Soğuk Yayla,The Cold Highland
+LEVEL_HIGHLAND_BRIEF,"Taşlık ve dört derece. Isıyı da toprağı da kendin kuracaksın.","Stony, and four degrees. Here you build the warmth as well as the soil."
