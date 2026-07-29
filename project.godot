@@ -8,12 +8,16 @@
 
 config_version=5
 
+[animation]
+
+compatibility/default_parent_skeleton_in_mesh_instance_3d=true
+
 [application]
 
 config/name="Pablo's Dream"
 config/description="An ecosystem restoration game. Heal the land, then leave without a trace."
 run/main_scene="res://scenes/Main.tscn"
-config/features=PackedStringArray("4.4", "GL Compatibility")
+config/features=PackedStringArray("4.7", "GL Compatibility")
 config/icon="res://icon.svg"
 
 [display]
@@ -24,11 +28,17 @@ window/stretch/mode="canvas_items"
 window/stretch/aspect="expand"
 window/handheld/orientation=1
 
+[gui]
+
+; Source Sans 3 carries the full Turkish set (ı İ ğ Ğ ş Ş ç Ç ö Ö ü Ü).
+; Godot's built-in font does not, and drops them to boxes.
+theme/custom_font="res://assets/fonts/SourceSans3.ttf"
+
 [internationalization]
 
 locale/translations=PackedStringArray("res://localization/strings.tr.translation", "res://localization/strings.en.translation")
-locale/fallback="tr"
 locale/test="tr"
+locale/fallback="tr"
 
 [physics]
 
@@ -36,7 +46,5 @@ common/physics_ticks_per_second=30
 
 [rendering]
 
-renderer/rendering_method="forward_plus"
-renderer/rendering_method.mobile="mobile"
 textures/vram_compression/import_etc2_astc=true
 anti_aliasing/quality/msaa_2d=1
