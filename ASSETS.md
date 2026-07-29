@@ -154,16 +154,34 @@ Save to `assets/buildings/<building_id>.glb` using the ids in
 
 ## 7. Sound
 
+**Done:** UI and event sounds are in and wired — Kenney *Interface Sounds*,
+CC0, in `assets/audio/ui/`. Nine cues: tile select, tool select, cancel,
+place, denied, sell, phase change, a species settling, and the launch. All
+tuning lives in `scripts/audio/sound_bank.gd`.
+
+**Still needed: ambience loops.** The code already asks for these three by
+name every time the phase turns over, and treats a missing file as silence —
+so dropping them in is the entire wiring step, no code change.
+
+| Save exactly as | Plays during | Source |
+|---|---|---|
+| `assets/audio/ambience/wind.ogg` | phase 1 (dead ground) and phase 4 (leaving) | [freesound.org](https://freesound.org), filter **CC0**, search `wind loop` |
+| `assets/audio/ambience/water.ogg` | phase 2, once water is moving | freesound, `river loop`, `stream ambience` |
+| `assets/audio/ambience/birds.ogg` | phase 3, once animals arrive | freesound, `forest birds loop`, `dawn chorus` |
+
+They must be **seamless loops** — freesound tags these as `loop`. `.ogg` is
+what Godot wants; convert with `ffmpeg -i in.wav -c:a libvorbis out.ogg`.
+
+Music is still open:
+
 | What | Source | Search |
 |---|---|---|
-| Ambience: wind, water, birds | [freesound.org](https://freesound.org) — filter to CC0 | `wind loop`, `river loop`, `forest birds` |
 | Music | [Kevin MacLeod](https://incompetech.com) (CC-BY), [Free Music Archive](https://freemusicarchive.org) | `calm ambient`, `contemplative piano` |
-| UI clicks | [Kenney Audio](https://kenney.nl/assets) — CC0 | `Interface Sounds` |
-
-Save to `assets/audio/`.
 
 Given what this game is about, quiet and sparse works better than a score that
-fills every moment. The ending in particular should probably be near-silent.
+fills every moment. The ending is already near-silent by design: phase 5 maps
+to no ambience at all, so the last thing you hear is the airship, and then
+nothing.
 
 ---
 

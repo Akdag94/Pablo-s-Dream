@@ -184,11 +184,13 @@ it is being tuned. Art slots in without touching `core`.
 - [x] Procedural terrain and water shaders with parallax occlusion
 - [x] Turkish localisation with English alongside
 
+- [x] Sound: nine event cues wired, pooled voices, ambience layer waiting on
+      files
+
 **Next**
 - [ ] Pablo's model — see `ASSETS.md`, the only wiring step is one field
-- [ ] Real textures, sky and vegetation — see `ASSETS.md`
+- [ ] Ambience loops and music — see `ASSETS.md` §7, no code change needed
 - [ ] Level definitions: hand-authored seeds and per-level objective sets
-- [ ] Sound and ambient score
 - [ ] Reclaim silos animating the haul-away rather than resolving instantly
 - [ ] Second and third region with their own biome sets and climate rules
 
