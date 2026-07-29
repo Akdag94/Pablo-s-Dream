@@ -62,6 +62,7 @@ func _on_tapped(screen_pos: Vector2) -> void:
 
 	var valid := _can_place_at(axial)
 	_cursor.move_to(axial, selected_def, valid)
+	Audio.play("select")
 	selection_changed.emit(axial, valid)
 
 
@@ -74,6 +75,7 @@ func _on_long_pressed(screen_pos: Vector2) -> void:
 		return
 	if state.try_remove(axial):
 		_cursor.clear()
+		Audio.play("sell", _view.tile_center(axial))
 		placement_result.emit(true)
 
 
@@ -93,6 +95,7 @@ func confirm_placement() -> bool:
 
 	var axial: Vector2i = _cursor.current_axial()
 	var ok := state.try_place(selected_def, axial)
+	Audio.play("place" if ok else "denied", _view.tile_center(axial))
 	placement_result.emit(ok)
 
 	if ok:

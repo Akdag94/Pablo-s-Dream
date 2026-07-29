@@ -44,7 +44,7 @@ func _ready() -> void:
 	_build_wildlife()
 
 	_state.leaves_changed.connect(func(n): _leaf_label.text = "%s  %d" % [tr("UI_LEAVES"), n])
-	_state.phase_changed.connect(func(_p): _populate_build_strip(); _refresh())
+	_state.phase_changed.connect(func(_p): Audio.play("phase"); _populate_build_strip(); _refresh())
 	_state.objective_updated.connect(_refresh)
 	_state.run_finished.connect(_on_finished)
 	_state.wildlife.species_settled.connect(_on_settled)
@@ -138,7 +138,9 @@ func _build_bottom() -> void:
 		_controller.confirm_placement())
 	_confirm_bar.add_child(_confirm_button)
 
-	_launch_button = _make_action_button(tr("UI_LAUNCH"), func(): _state.launch())
+	_launch_button = _make_action_button(tr("UI_LAUNCH"), func():
+		Audio.play("launch")
+		_state.launch())
 	_launch_button.visible = false
 	column.add_child(_launch_button)
 
@@ -236,6 +238,7 @@ func _make_build_button(def: BuildingDef) -> Button:
 			if other is Button and other != b:
 				other.button_pressed = false
 		var chosen: BuildingDef = def if b.button_pressed else null
+		Audio.play("tool" if b.button_pressed else "cancel")
 		_controller.select_building(chosen)
 		_tooltip.text = def.description_text() if b.button_pressed else ""
 		_refresh_confirm()
@@ -244,6 +247,7 @@ func _make_build_button(def: BuildingDef) -> Button:
 
 
 func _cancel() -> void:
+	Audio.play("cancel")
 	_controller.select_building(null)
 	for child in _build_strip.get_children():
 		if child is Button:
@@ -309,6 +313,7 @@ func _refresh_pablo() -> void:
 
 
 func _on_settled(id: String, _axial: Vector2i) -> void:
+	Audio.play("species")
 	var def: SpeciesDef = Bestiary.get_species(id)
 	_tooltip.text = tr("UI_SETTLED").format([def.name_text()], "{0}")
 	_refresh_wildlife()

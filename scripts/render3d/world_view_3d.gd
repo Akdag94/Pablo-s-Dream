@@ -54,6 +54,12 @@ func _ready() -> void:
 	_build_batches()
 	_apply_environment()
 	state.phase_changed.connect(set_sky_for_phase)
+
+	# Ambience is weather as much as the sky is: both say what the world feels
+	# like right now, and both change on the same signal.
+	state.phase_changed.connect(Audio.set_ambience_for_phase)
+	Audio.set_ambience_for_phase(state.phase)
+
 	set_process(true)
 
 
@@ -336,3 +342,15 @@ func pick_tile(camera: Camera3D, screen_pos: Vector2):
 	if not world.has(axial):
 		return null
 	return axial
+
+
+## Centre of a tile's top surface in world space. Anything that needs to happen
+## *at* a tile — a positional sound, later an effect — anchors here rather than
+## re-deriving the elevation table.
+func tile_center(axial: Vector2i) -> Vector3:
+	var flat := Grid.to_pixel(axial, TILE_SIZE)
+	var tile := world.get_tile(axial)
+	var height := 0.2 * HEIGHT_SCALE
+	if tile != null:
+		height = TERRAIN_HEIGHT.get(tile.terrain, 0.2) * HEIGHT_SCALE
+	return Vector3(flat.x, height, flat.y)
