@@ -17,6 +17,10 @@ const MOISTURE_DECAY := 0.06
 ## How much clean runoff living land feeds into the sea beside it.
 const COASTAL_RUNOFF := 0.03
 
+## The region this world was generated from. Read for the map's shape and
+## climate here, and for the objectives over in GameState.
+var level: LevelDef
+
 var radius: int
 var tiles: Dictionary = {}          ## Vector2i -> Tile
 var buildings: Dictionary = {}      ## Vector2i -> Building
@@ -28,9 +32,10 @@ var _tile_list: Array[Tile] = []
 var _rng := RandomNumberGenerator.new()
 
 
-func _init(p_radius: int = 14, seed_value: int = 0) -> void:
-	radius = p_radius
-	_rng.seed = seed_value if seed_value != 0 else randi()
+func _init(p_level: LevelDef = null) -> void:
+	level = p_level if p_level != null else Levels.first()
+	radius = level.radius
+	_rng.seed = level.seed_value if level.seed_value != 0 else randi()
 	_build_grid()
 	_generate_terrain()
 
@@ -135,11 +140,15 @@ func _generate_terrain() -> void:
 		# Push the rim of the map down into ocean so every island reads as one.
 		# The exponent keeps the falloff concentrated at the very edge — a
 		# gentler curve drowned most of the buildable land.
-		var elevation := h - pow(dist, 3.0) * 0.9
+		var elevation := h - pow(dist, 3.0) * 0.9 + level.elevation_bias
 
-		if elevation < -0.45:
+		# The shore band keeps its width relative to sea level, so raising the
+		# water does not swallow the beach along with the shallows.
+		var shore := level.sea_level + 0.15
+
+		if elevation < level.sea_level:
 			t.terrain = TileTypes.Terrain.OCEAN
-		elif elevation < -0.30:
+		elif elevation < shore:
 			t.terrain = TileTypes.Terrain.SAND
 		elif elevation > 0.42:
 			t.terrain = TileTypes.Terrain.CLIFF
@@ -150,12 +159,12 @@ func _generate_terrain() -> void:
 
 		# Dry channels wandering through the interior, ready to be re-watered.
 		var d := detail.get_noise_2d(a.x * 10.0, a.y * 10.0)
-		if t.terrain == TileTypes.Terrain.WASTELAND and absf(d) < 0.05:
+		if t.terrain == TileTypes.Terrain.WASTELAND and absf(d) < level.river_density:
 			t.terrain = TileTypes.Terrain.RIVERBED
 
 		t.fertility = 0.0
 		t.moisture = 1.0 if TileTypes.is_water(t.terrain) else 0.0
-		t.temperature = 14.0
+		t.temperature = level.base_temperature
 
 
 # ------------------------------------------------------------------ mutations

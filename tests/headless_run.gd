@@ -14,7 +14,7 @@ var _turn := 0
 func _init() -> void:
 	print("— Pablo's Dream · headless run —\n")
 
-	var world := World.new(14, 12345)
+	var world := World.new(Levels.first())
 	var state := GameState.new(world)
 
 	_report_generation(world)

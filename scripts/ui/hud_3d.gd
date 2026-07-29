@@ -287,7 +287,7 @@ func _refresh_wildlife() -> void:
 
 	var heading := Label.new()
 	heading.text = "%s  %d / %d" % [
-		tr("UI_WILDLIFE"), _state.wildlife.count(), GameState.REQUIRED_SPECIES]
+		tr("UI_WILDLIFE"), _state.wildlife.count(), _state.level.required_species]
 	heading.add_theme_font_size_override("font_size", 17)
 	_wildlife_list.add_child(heading)
 

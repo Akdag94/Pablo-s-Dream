@@ -12,7 +12,8 @@ signal build_attempted(axial: Vector2i, ok: bool)
 const TILE_SIZE := 26.0
 const SIM_INTERVAL := 0.35
 
-@export var map_radius: int = 14
+## Which region to play. Map size and climate come with it — see `levels.gd`.
+@export var level_id: String = "home"
 
 var world: World
 var state: GameState
@@ -26,7 +27,7 @@ var _drag_moved := false
 
 
 func _ready() -> void:
-	world = World.new(map_radius)
+	world = World.new(Levels.resolve(level_id))
 	state = GameState.new(world)
 	world.tile_changed.connect(func(_a): queue_redraw())
 	state.phase_changed.connect(func(_p): queue_redraw())

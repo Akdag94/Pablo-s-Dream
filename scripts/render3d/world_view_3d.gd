@@ -28,7 +28,8 @@ const TERRAIN_HEIGHT := {
 	TileTypes.Terrain.CLIFF: 1.15,
 }
 
-@export var map_radius: int = 14
+## Which region to play. Map size and climate come with it — see `levels.gd`.
+@export var level_id: String = "home"
 @export var sim_interval: float = 0.35
 
 var world: World
@@ -47,7 +48,7 @@ var _sim_accum := 0.0
 func _ready() -> void:
 	quality = Quality.detect()
 
-	world = World.new(map_radius)
+	world = World.new(Levels.resolve(level_id))
 	state = GameState.new(world)
 	world.tile_changed.connect(func(_a): _dirty = true)
 

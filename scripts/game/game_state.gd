@@ -17,22 +17,16 @@ enum Phase {
 	DONE,
 }
 
-## Leaves you start with, enough for a turbine and a couple of purifiers.
-const STARTING_LEAVES := 20
-
-## Phase 1 clears when this share of the land is alive.
-const RESTORE_TARGET := 0.28
-## Phase 2 clears when this many distinct biomes each hit their minimum size.
-const REQUIRED_BIOMES := 3
-const BIOME_MIN_TILES := 12
-## Phase 3 clears when this many species have settled.
-const REQUIRED_SPECIES := 4
-
 var world: World
 var wildlife: WildlifeSystem
 var pablo: Pablo
 
-var leaves: int = STARTING_LEAVES
+## The region being played. Every target below — how much land, how many
+## biomes, how many species — comes from here, so a level is the only thing
+## that decides what "finished" means. See `levels.gd`.
+var level: LevelDef
+
+var leaves: int = 0
 var phase: Phase = Phase.RESTORE
 
 ## Leaves are paid out for new growth, so we only score tiles once.
@@ -49,6 +43,8 @@ var _yield_tick := 0
 
 func _init(p_world: World) -> void:
 	world = p_world
+	level = world.level
+	leaves = level.starting_leaves
 	wildlife = WildlifeSystem.new(world)
 	pablo = Pablo.new(world)
 	world.simulated.connect(_on_world_simulated)
@@ -169,13 +165,13 @@ func _collect_standing_yield() -> void:
 func _check_phase_advance() -> void:
 	match phase:
 		Phase.RESTORE:
-			if world.restored_fraction() >= RESTORE_TARGET:
+			if world.restored_fraction() >= level.restore_target:
 				_set_phase(Phase.CULTIVATE)
 		Phase.CULTIVATE:
-			if established_biomes().size() >= REQUIRED_BIOMES:
+			if established_biomes().size() >= level.required_biomes:
 				_set_phase(Phase.WILDLIFE)
 		Phase.WILDLIFE:
-			if wildlife.count() >= REQUIRED_SPECIES:
+			if wildlife.count() >= level.required_species:
 				_set_phase(Phase.RECLAIM)
 		Phase.RECLAIM:
 			pass  # Ends only when the player launches.
@@ -190,7 +186,7 @@ func _set_phase(next: Phase) -> void:
 	phase_changed.emit(phase)
 
 
-## Biomes that currently cover at least BIOME_MIN_TILES hexes.
+## Biomes that currently cover at least the level's minimum number of tiles.
 func established_biomes() -> Array:
 	var counts := {}
 	for t in world.all_tiles():
@@ -200,7 +196,7 @@ func established_biomes() -> Array:
 			counts[t.biome] = counts.get(t.biome, 0) + 1
 	var out := []
 	for b in counts:
-		if counts[b] >= BIOME_MIN_TILES:
+		if counts[b] >= level.biome_min_tiles:
 			out.append(b)
 	return out
 
@@ -250,6 +246,7 @@ func build_summary() -> Dictionary:
 		if t.has_life():
 			counts[t.biome] = counts.get(t.biome, 0) + 1
 	return {
+		"level": level.id,
 		"restored": world.restored_fraction(),
 		"leaves": leaves,
 		"biomes": counts,
@@ -267,13 +264,13 @@ func objective_text() -> String:
 	match phase:
 		Phase.RESTORE:
 			var pct := int(world.restored_fraction() * 100.0)
-			var goal := int(RESTORE_TARGET * 100.0)
+			var goal := int(level.restore_target * 100.0)
 			return tr("OBJ_RESTORE").format([pct, goal])
 		Phase.CULTIVATE:
 			var n := established_biomes().size()
-			return tr("OBJ_CULTIVATE").format([n, REQUIRED_BIOMES])
+			return tr("OBJ_CULTIVATE").format([n, level.required_biomes])
 		Phase.WILDLIFE:
-			return tr("OBJ_WILDLIFE").format([wildlife.count(), REQUIRED_SPECIES])
+			return tr("OBJ_WILDLIFE").format([wildlife.count(), level.required_species])
 		Phase.RECLAIM:
 			var left := 0
 			for b in world.buildings.values():

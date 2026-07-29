@@ -11,7 +11,7 @@
 
 [node name="WorldView3D" type="Node3D" parent="."]
 script = ExtResource("1_world")
-map_radius = 14
+level_id = "home"
 
 [node name="Foliage" type="Node3D" parent="."]
 script = ExtResource("4_foliage")
