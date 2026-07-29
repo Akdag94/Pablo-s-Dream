@@ -1,25 +1,82 @@
-﻿extends Node3D
+extends Node3D
 
 ## Scatters vegetation across living tiles.
 ##
-## Density follows each hex's fertility, so growth is something you watch
-## happen rather than something that pops in fully formed. Every biome gets
-## one MultiMesh batch, which keeps the whole island at a handful of draw
-## calls no matter how green it gets.
+## Two things changed here after comparing against the reference. The plants are
+## real models from the Kenney nature kit instead of cones and prisms — a cone
+## standing on end reads as a cone at every camera distance — and there are
+## several times as many of them, because a living tile in the reference is
+## covered thickly enough that the ground barely shows through. Six sprigs per
+## tile left it looking mown.
+##
+## Density still follows fertility, so growth is something you watch happen
+## rather than something that pops in finished. Every model gets one MultiMesh
+## batch, which keeps the whole island at a couple of dozen draw calls no matter
+## how green it gets.
 
 const TILE_SIZE := 1.0
 ## Rebuilding every batch is cheap but not free; only do it a few times a
 ## second even if the world changes constantly.
 const REBUILD_INTERVAL := 0.6
 
+## Real models from the Kenney nature kit (CC0), which was already in the repo.
+const KIT := "res://assets/foliage/kenney_nature_kit/Models/GLTF format/"
+
+## Biome -> the models scattered on it, and how many per tile at full fertility.
+##
+## Grass carries the highest count because it is a carpet; forest the lowest
+## because each model is large and they overlap anyway.
+const PLANTING := {
+	TileTypes.Biome.GRASS: {
+		"models": ["grass.glb", "grass_large.glb", "grass_leafs.glb",
+			"flower_yellowA.glb", "flower_redA.glb", "flower_purpleA.glb"],
+		"per_tile": 30,
+	},
+	TileTypes.Biome.SHRUB: {
+		"models": ["plant_bush.glb", "plant_bushSmall.glb", "plant_bushDetailed.glb",
+			"rock_smallA.glb", "grass.glb"],
+		"per_tile": 16,
+	},
+	TileTypes.Biome.WETLAND: {
+		"models": ["grass_leafsLarge.glb", "plant_flatTall.glb", "grass_large.glb"],
+		"per_tile": 22,
+	},
+	TileTypes.Biome.MANGROVE: {
+		"models": ["tree_palmDetailedShort.glb", "tree_palmShort.glb",
+			"tree_palmBend.glb", "grass_leafsLarge.glb"],
+		"per_tile": 8,
+	},
+	TileTypes.Biome.FOREST: {
+		"models": ["tree_pineTallA.glb", "tree_pineTallB.glb", "tree_pineRoundA.glb",
+			"tree_default.glb", "tree_oak.glb", "plant_bush.glb"],
+		"per_tile": 10,
+	},
+	TileTypes.Biome.BEACH: {
+		"models": ["rock_smallFlatA.glb", "rock_smallFlatB.glb", "grass.glb",
+			"plant_bushSmall.glb"],
+		"per_tile": 9,
+	},
+}
+
+## Tallest a scattered plant may stand, in tile widths. Kenney's models are
+## authored around a 1-unit grid, which is far too big beside a 1-unit tile, so
+## every mesh is measured and rescaled to the figure for its biome.
+const TARGET_HEIGHT := {
+	TileTypes.Biome.GRASS: 0.16,
+	TileTypes.Biome.SHRUB: 0.22,
+	TileTypes.Biome.WETLAND: 0.30,
+	TileTypes.Biome.MANGROVE: 0.85,
+	TileTypes.Biome.FOREST: 0.95,
+	TileTypes.Biome.BEACH: 0.14,
+}
+
 @export var world_view_path: NodePath
 
 var world: World
 var quality: Quality
 
-## Biome -> MultiMeshInstance3D
+## Biome -> Array[MultiMeshInstance3D], one entry per model variant.
 var _batches: Dictionary = {}
-var _rng := RandomNumberGenerator.new()
 var _dirty := true
 var _accum := 0.0
 
@@ -28,10 +85,6 @@ func _ready() -> void:
 	var view := get_node(world_view_path)
 	world = view.world
 	quality = view.quality
-
-	# Deterministic scatter: the same tile always grows the same clump, so
-	# plants do not jump around when the batch is rebuilt.
-	_rng.seed = 20260729
 
 	_build_batches()
 	world.tile_changed.connect(func(_a): _dirty = true)
@@ -49,51 +102,145 @@ func _process(delta: float) -> void:
 	_rebuild()
 
 
+# -------------------------------------------------------------------- batches
+
 func _build_batches() -> void:
-	_add_batch(TileTypes.Biome.GRASS, _blade_mesh(), Color("6f9c48"), 0.9)
-	_add_batch(TileTypes.Biome.SHRUB, _bush_mesh(), Color("8d8a4c"), 0.7)
-	_add_batch(TileTypes.Biome.WETLAND, _reed_mesh(), Color("4f8a5e"), 1.0)
-	_add_batch(TileTypes.Biome.MANGROVE, _tree_mesh(0.7), Color("3d6b52"), 0.5)
-	_add_batch(TileTypes.Biome.FOREST, _tree_mesh(1.0), Color("2f5f34"), 0.45)
+	for biome in PLANTING:
+		var spec: Dictionary = PLANTING[biome]
+		var files: Array = spec["models"]
+		# Split the per-tile budget across this biome's variants.
+		var share := maxf(1.0, float(spec["per_tile"]) / float(files.size()))
+		for index in files.size():
+			var node := _make_batch(biome, String(files[index]), share, index)
+			if node != null:
+				if not _batches.has(biome):
+					_batches[biome] = []
+				_batches[biome].append(node)
 	_rebuild()
 
 
-func _add_batch(biome: TileTypes.Biome, mesh: Mesh, tint: Color, density: float) -> void:
+## One batch for one model. Returns null when the kit is missing, in which case
+## that variant simply does not grow rather than bringing the scene down.
+func _make_batch(biome: TileTypes.Biome, file: String, share: float,
+		index: int) -> MultiMeshInstance3D:
+	var path := KIT + file
+	if not ResourceLoader.exists(path):
+		push_warning("Foliage model missing: %s" % path)
+		return null
+
+	var scene: PackedScene = load(path)
+	var root := scene.instantiate()
+	var source := _first_mesh_instance(root)
+	if source == null:
+		root.free()
+		push_warning("No mesh inside %s" % path)
+		return null
+
+	var mesh: Mesh = _recoloured(source.mesh, biome)
+	root.free()
+
+	var target: float = TARGET_HEIGHT.get(biome, 0.2)
+	var span := mesh.get_aabb().size.y
+	var fit := target / span if span > 0.001 else 1.0
+
 	var mm := MultiMesh.new()
 	mm.transform_format = MultiMesh.TRANSFORM_3D
-	mm.use_colors = true
 	mm.mesh = mesh
-
-	var mat := StandardMaterial3D.new()
-	mat.vertex_color_use_as_albedo = true
-	mat.albedo_color = tint
-	mat.roughness = 0.85
-	# Foliage lit from both sides stops looking like flat cardboard.
-	mat.cull_mode = BaseMaterial3D.CULL_DISABLED
 
 	var node := MultiMeshInstance3D.new()
 	node.multimesh = mm
-	node.material_override = mat
 	node.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON \
 		if quality.tier == Quality.Tier.HIGH \
 		else GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-	node.set_meta("density", density)
+	node.set_meta("share", share)
+	node.set_meta("fit", fit)
+	# Offsets the scatter so two variants on the same tile do not stack up.
+	node.set_meta("variant", index)
 	add_child(node)
+	return node
 
-	_batches[biome] = node
 
+## Leaf colour per biome, and the colour of whatever is holding the leaves up.
+##
+## The kit's own materials cannot be used. Measured: its glTF models carry no
+## textures at all, and their albedo factors are placeholders — pale cyan for
+## every leafy surface and pale peach for every trunk and rock. That is exactly
+## the "ice crystal" ring that appeared along the coast the first time these
+## models went in. So each surface is repainted here instead.
+const LEAF_COLOUR := {
+	TileTypes.Biome.GRASS: Color(0.42, 0.63, 0.22),
+	TileTypes.Biome.SHRUB: Color(0.47, 0.45, 0.23),
+	TileTypes.Biome.WETLAND: Color(0.25, 0.50, 0.31),
+	TileTypes.Biome.MANGROVE: Color(0.21, 0.42, 0.28),
+	TileTypes.Biome.FOREST: Color(0.17, 0.35, 0.21),
+	TileTypes.Biome.BEACH: Color(0.52, 0.62, 0.34),
+}
+
+## Trunks, stems and stones. Beach gets grey because what is scattered there is
+## pebbles, not wood.
+const HARD_COLOUR := {
+	TileTypes.Biome.BEACH: Color(0.46, 0.45, 0.43),
+	TileTypes.Biome.SHRUB: Color(0.40, 0.36, 0.30),
+}
+const WOOD_COLOUR := Color(0.27, 0.19, 0.13)
+
+
+## Copy a kit mesh and repaint every surface. Leafy surfaces are told apart from
+## woody ones by the placeholder colour the kit shipped them with: its leaf
+## surfaces are always cyan-dominant, its trunks always warm.
+func _recoloured(source: Mesh, biome: TileTypes.Biome) -> Mesh:
+	var out := ArrayMesh.new()
+	var leaf: Color = LEAF_COLOUR.get(biome, Color(0.30, 0.50, 0.25))
+	var hard: Color = HARD_COLOUR.get(biome, WOOD_COLOUR)
+
+	for s in source.get_surface_count():
+		out.add_surface_from_arrays(
+			source.surface_get_primitive_type(s), source.surface_get_arrays(s))
+
+		var is_leaf := true
+		var existing = source.surface_get_material(s)
+		if existing is BaseMaterial3D:
+			var c: Color = existing.albedo_color
+			is_leaf = c.b > c.r
+		out.surface_set_material(s, _plant_material(leaf if is_leaf else hard, is_leaf))
+
+	return out
+
+
+func _plant_material(colour: Color, is_leaf: bool) -> StandardMaterial3D:
+	var mat := StandardMaterial3D.new()
+	mat.albedo_color = colour
+	mat.roughness = 0.88
+	if is_leaf:
+		# Leaves lit from one side only read as flat cardboard from the other.
+		mat.cull_mode = BaseMaterial3D.CULL_DISABLED
+	return mat
+
+
+func _first_mesh_instance(node: Node) -> MeshInstance3D:
+	if node is MeshInstance3D and node.mesh != null:
+		return node
+	for child in node.get_children():
+		var found := _first_mesh_instance(child)
+		if found != null:
+			return found
+	return null
+
+
+# -------------------------------------------------------------------- filling
 
 func _rebuild() -> void:
 	for biome in _batches:
-		_fill(biome, _batches[biome])
+		for node in _batches[biome]:
+			_fill(biome, node)
 
 
 func _fill(biome: TileTypes.Biome, node: MultiMeshInstance3D) -> void:
-	var density: float = node.get_meta("density", 1.0)
-	var transforms: Array[Transform3D] = []
-	var colors: Array[Color] = []
+	var share: float = node.get_meta("share", 1.0)
+	var fit: float = node.get_meta("fit", 1.0)
+	var variant: int = node.get_meta("variant", 0)
 
-	# Reset per rebuild so the same tile draws the same clump every time.
+	var transforms: Array[Transform3D] = []
 	var scatter := RandomNumberGenerator.new()
 
 	for t in world.all_tiles():
@@ -101,86 +248,42 @@ func _fill(biome: TileTypes.Biome, node: MultiMeshInstance3D) -> void:
 			continue
 
 		# Fertility drives how full the clump is: a tile that just came alive
-		# gets a sprig, a mature one gets a thicket.
-		var count := int(round(quality.foliage_per_tile * density * clampf(t.fertility, 0.2, 1.0)))
+		# gets a sprig, a mature one gets a thicket. Beach never gets richer,
+		# so it is scattered at a flat rate instead.
+		var fullness := clampf(t.fertility, 0.25, 1.0)
+		if biome == TileTypes.Biome.BEACH:
+			fullness = 1.0
+		var count := int(round(share * fullness * _budget()))
 		if count <= 0:
 			continue
 
-		scatter.seed = hash(t.axial)
+		# Deterministic per tile and per variant, so plants do not jump around
+		# when a batch is rebuilt and two variants do not land on each other.
+		scatter.seed = hash(Vector3i(t.axial.x, t.axial.y, variant))
 		var center := Grid.to_pixel(t.axial, TILE_SIZE)
-		var top := _tile_top(t)
+		var top := TerrainHeight.of(t)
 
 		for i in count:
 			var angle := scatter.randf() * TAU
-			var radius := sqrt(scatter.randf()) * TILE_SIZE * 0.78
+			var radius := sqrt(scatter.randf()) * TILE_SIZE * 0.46
 			var pos := Vector3(
 				center.x + cos(angle) * radius,
 				top,
 				center.y + sin(angle) * radius)
 
-			var scale := scatter.randf_range(0.7, 1.25)
+			var vary := scatter.randf_range(0.78, 1.28)
 			var basis := Basis(Vector3.UP, scatter.randf() * TAU).scaled(
-				Vector3(scale, scale * scatter.randf_range(0.85, 1.3), scale))
-
+				Vector3(fit * vary, fit * vary * scatter.randf_range(0.9, 1.2),
+					fit * vary))
 			transforms.append(Transform3D(basis, pos))
-			# Slight per-plant colour drift so a field is not one flat green.
-			colors.append(Color(1, 1, 1).lerp(
-				Color(scatter.randf_range(0.8, 1.1), 1.0, scatter.randf_range(0.8, 1.05)),
-				0.5))
 
 	var mm := node.multimesh
 	mm.instance_count = transforms.size()
 	for i in transforms.size():
 		mm.set_instance_transform(i, transforms[i])
-		mm.set_instance_color(i, colors[i])
 
 
-# -------------------------------------------------------------------- meshes
-
-func _blade_mesh() -> Mesh:
-	var m := PrismMesh.new()
-	m.size = Vector3(0.09, 0.30, 0.02)
-	return m
-
-
-func _bush_mesh() -> Mesh:
-	var m := SphereMesh.new()
-	m.radius = 0.14
-	m.height = 0.20
-	m.radial_segments = 6
-	m.rings = 3
-	return m
-
-
-func _reed_mesh() -> Mesh:
-	var m := CylinderMesh.new()
-	m.top_radius = 0.012
-	m.bottom_radius = 0.03
-	m.height = 0.42
-	m.radial_segments = 4
-	m.rings = 1
-	return m
-
-
-func _tree_mesh(scale: float) -> Mesh:
-	# A cone reads as a canopy at this camera distance and costs 8 triangles.
-	var m := CylinderMesh.new()
-	m.top_radius = 0.0
-	m.bottom_radius = 0.24 * scale
-	m.height = 0.75 * scale
-	m.radial_segments = 6
-	m.rings = 1
-	return m
-
-
-func _tile_top(t: Tile) -> float:
-	var heights := {
-		TileTypes.Terrain.OCEAN: -0.55,
-		TileTypes.Terrain.WATER: -0.15,
-		TileTypes.Terrain.RIVERBED: -0.12,
-		TileTypes.Terrain.SAND: 0.05,
-		TileTypes.Terrain.WASTELAND: 0.20,
-		TileTypes.Terrain.ROCK: 0.55,
-		TileTypes.Terrain.CLIFF: 1.15,
-	}
-	return heights.get(t.terrain, 0.2)
+## Scales the whole planting budget with the device's foliage allowance, so a
+## phone thins the scatter out instead of dropping species entirely.
+func _budget() -> float:
+	return clampf(float(quality.foliage_per_tile) / 6.0, 0.35, 1.0)
