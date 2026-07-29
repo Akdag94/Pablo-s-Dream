@@ -8,7 +8,10 @@ extends RefCounted
 ## written rather than replayed from a seed.
 
 const SAVE_PATH := "user://save.json"
-const FORMAT_VERSION := 1
+## 2 added the level id. A version 1 save has no way to say which region it
+## was, and guessing would hand the player another region's objectives, so
+## those are dropped rather than migrated.
+const FORMAT_VERSION := 2
 
 
 static func exists() -> bool:
@@ -80,7 +83,7 @@ static func _serialise(state: GameState) -> Dictionary:
 
 	return {
 		"version": FORMAT_VERSION,
-		"radius": world.radius,
+		"level": world.level.id,
 		"leaves": state.leaves,
 		"phase": int(state.phase),
 		"tiles": tiles,
@@ -97,8 +100,11 @@ static func _serialise(state: GameState) -> Dictionary:
 # ------------------------------------------------------------------ reading
 
 static func _deserialise(data: Dictionary):
-	var radius := int(data.get("radius", 14))
-	var world := World.new(radius)
+	# Regenerating from the level gives the right grid size and objectives. The
+	# terrain it generates is then overwritten wholesale below, because
+	# excavators and kilns reshape ground permanently and a seed cannot replay
+	# that.
+	var world := World.new(Levels.resolve(String(data.get("level", ""))))
 	var state := GameState.new(world)
 
 	for entry in data.get("tiles", []):
@@ -131,7 +137,7 @@ static func _deserialise(data: Dictionary):
 		var pair: Array = wildlife[id]
 		state.wildlife.settled[id] = Vector2i(int(pair[0]), int(pair[1]))
 
-	state.leaves = int(data.get("leaves", GameState.STARTING_LEAVES))
+	state.leaves = int(data.get("leaves", world.level.starting_leaves))
 	state.phase = int(data.get("phase", 0)) as GameState.Phase
 
 	var pablo_data: Dictionary = data.get("pablo", {})

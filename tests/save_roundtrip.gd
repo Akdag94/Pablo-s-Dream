@@ -11,7 +11,7 @@ func _init() -> void:
 	print("— save/load roundtrip —\n")
 
 	var state := _build_played_state()
-	print("before  %d hexes, %d buildings, %d leaves, phase %s" % [
+	print("before  %d tiles, %d buildings, %d leaves, phase %s" % [
 		state.world.all_tiles().size(),
 		state.world.count_buildings(),
 		state.leaves,
@@ -25,7 +25,7 @@ func _init() -> void:
 
 	if loaded != null:
 		_compare(state, loaded)
-		print("after   %d hexes, %d buildings, %d leaves, phase %s" % [
+		print("after   %d tiles, %d buildings, %d leaves, phase %s" % [
 			loaded.world.all_tiles().size(),
 			loaded.world.count_buildings(),
 			loaded.leaves,
@@ -48,9 +48,11 @@ func _check(condition: bool, message: String) -> void:
 		failures.append(message)
 
 
-## Play far enough that there is real state worth persisting.
+## Play far enough that there is real state worth persisting. Uses the highland
+## region rather than the opening one, so a save that quietly forgets which
+## level it came from shows up as a mismatch instead of passing by luck.
 func _build_played_state() -> GameState:
-	var world := World.new(10, 777)
+	var world := World.new(Levels.get_level("highland"))
 	var state := GameState.new(world)
 
 	var placed := 0
@@ -69,6 +71,10 @@ func _build_played_state() -> GameState:
 
 
 func _compare(before: GameState, after: GameState) -> void:
+	_check(before.level.id == after.level.id,
+		"level differs: %s vs %s" % [before.level.id, after.level.id])
+	_check(before.world.radius == after.world.radius,
+		"map size differs: %d vs %d" % [before.world.radius, after.world.radius])
 	_check(before.leaves == after.leaves,
 		"leaves differ: %d vs %d" % [before.leaves, after.leaves])
 	_check(before.phase == after.phase,
