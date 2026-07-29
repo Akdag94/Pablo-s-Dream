@@ -4,7 +4,7 @@ An ecosystem restoration game. You arrive on dead ground, rebuild a living
 landscape with machines, and then take every machine back with you when you
 leave. The win condition is an empty map that is fully alive.
 
-Built with **Godot 4.4**, targeting desktop and mobile.
+Built with **Godot 4.7**, targeting iPhone first and desktop alongside it.
 
 ---
 
@@ -26,7 +26,7 @@ There are two scenes:
 
 | Action | Mouse | Touch |
 |---|---|---|
-| Select a hex | left click | tap |
+| Select a tile | left click | tap |
 | Place | press **Yerleştir** | press **Yerleştir** |
 | Sell a building | — | long press |
 | Pan | drag / middle drag | one-finger drag |
@@ -69,7 +69,7 @@ and create an environment group `godot` holding `GODOT_VERSION=4.7.1`.
 
 ### The loop
 
-Everything on the map is a hex with four environmental values — **terrain**,
+Everything on the map is a tile with four environmental values — **terrain**,
 **fertility**, **moisture**, and **temperature**. You never paint biomes
 directly. You place machines that push those values around, and the biome layer
 settles into whatever those conditions support. Grass appears where soil is
@@ -94,7 +94,7 @@ are gone.
 ### Wildlife
 
 You never place an animal. Each species has habitat requirements — so many
-wetland hexes, so much standing water, a temperature band, sometimes solitude
+wetland tiles, so much standing water, a temperature band, sometimes solitude
 from machinery, sometimes another species already present. Every few ticks the
 world is surveyed, and anything that can live somewhere moves in. Destroy the
 habitat and it leaves again.
@@ -111,7 +111,7 @@ wanders further and rests less as the world comes back — waiting, then
 curious, then happy, then finally *home* once the land is alive and every
 machine is gone.
 
-`scripts/game/pablo.gd` holds only his position, heading, and mood in hex
+`scripts/game/pablo.gd` holds only his position, heading, and mood in grid
 space. It exposes both `pixel_position()` for the 2D prototype and
 `world_position_3d()` / `heading()` for the 3D view, so dropping in a real
 model changes nothing about how he behaves.
@@ -132,7 +132,7 @@ Selling refunds 70%; the reclaim silo refunds 50% on the way out.
 ```
 scripts/
   core/
-    hex.gd          axial hex math (pointy-top)
+    grid.gd         square grid maths — the only file that knows the shape
     tile_types.gd   terrain + biome enums, values, colours
     tile.gd         one cell's state
     world.gd        the grid, procedural generation, the simulation tick
@@ -143,20 +143,41 @@ scripts/
   game/
     game_state.gd   phases, leaves, objectives, launch condition
     pablo.gd        his position, heading and mood — render-agnostic
+    save_game.gd    serialise and restore a run
   wildlife/
     species_def.gd  what one species needs
     bestiary.gd     >>> ALL SPECIES TUNING LIVES HERE <<<
     wildlife_system.gd  surveys the world, settles and un-settles species
+  input/
+    gesture_recognizer.gd  separates camera moves from game actions
   render/
-    world_view.gd   flat-colour hex renderer + pointer input
+    world_view.gd   flat-colour 2D renderer + pointer input
+  render3d/
+    world_view_3d.gd    the real renderer: two MultiMesh batches, sky, water
+    terrain_textures.gd  the photoscanned PBR texture array
+    camera_rig.gd        pan, orbit, zoom
+    build_cursor.gd      selection ring and area-of-effect preview
+    foliage.gd           fertility-driven scattering
+    pablo_view.gd        his model and mood animation
+    game_controller_3d.gd  the one owner of the gesture stream
+    quality.gd           per-device render budget
+  audio/
+    sound_bank.gd   >>> ALL AUDIO TUNING LIVES HERE <<<
+    audio_director.gd  pooled voices, buses, ambience
   ui/
-    hud.gd          top bar, build bar, wildlife panel
+    hud.gd          desktop prototype HUD
+    hud_3d.gd       the touch-first HUD
+shaders/
+  terrain.gdshader  triplanar PBR blend with parallax occlusion
+  water.gdshader    depth transparency, refraction, reflection
 scenes/
   Main.tscn
+  Main3D.tscn
 ```
 
-The `core` and `buildings` layers know nothing about rendering. You can step
-`world.simulate()` in a headless test and assert on tile states.
+The `core`, `buildings`, `wildlife` and `game` layers know nothing about
+rendering or audio. You can step `world.simulate()` in a headless test and
+assert on tile states.
 
 **To rebalance the game, you only need to touch `catalog.gd`** — every cost,
 radius, and strength is there.
@@ -165,12 +186,21 @@ radius, and strength is there.
 
 ## Current state
 
-Working: hex grid, procedural island generation, moisture diffusion, fertility,
-temperature, the full biome settling rule set, all 14 buildings, power
-coverage, the leaf economy, all three phases, and the launch condition.
+The whole run is playable end to end: square grid, procedural island
+generation, moisture diffusion, fertility, temperature, the full biome
+settling rule set, all 14 buildings, power coverage, the leaf economy, all
+four phases, the wildlife survey, and the launch.
 
-Rendering is flat colour on purpose — the simulation needs to be legible while
-it is being tuned. Art slots in without touching `core`.
+The 3D renderer is the real one — photoscanned PBR terrain, an HDRI sky per
+phase, a water shader with refraction and reflection, fertility-driven
+foliage, and touch controls with a confirm step. `scenes/Main.tscn` is the
+flat-colour 2D prototype, kept because the simulation is easier to read in
+solid colours while numbers are being tuned.
+
+Known debt: the balance was tuned against hexagons, where every tile had six
+neighbours. Squares have four for adjacency rules and eight for scattering, so
+diffusion and coverage both behave differently now and the phase pacing has
+not been re-tuned against them.
 
 ---
 
@@ -182,8 +212,10 @@ it is being tuned. Art slots in without touching `core`.
 - [x] Save/load with a roundtrip test
 - [x] Touch controls: pinch-zoom, orbit, tap-to-select with a confirm step
 - [x] Procedural terrain and water shaders with parallax occlusion
-- [x] Turkish localisation with English alongside
-
+- [x] Turkish localisation with English alongside, in a font that carries the
+      full Turkish set
+- [x] Photoscanned CC0 ground textures through a texture array
+- [x] HDRI skies that change with the phase
 - [x] Sound: nine event cues wired, pooled voices, ambience layer waiting on
       files
 
@@ -198,39 +230,43 @@ it is being tuned. Art slots in without touching `core`.
 
 ## Visual direction: realism
 
-The target is photographic, not stylised. That is a rendering-pipeline
-decision, and the architecture already supports it — nothing in `core/`,
-`buildings/`, `wildlife/` or `game/` knows that the current renderer is
-flat-coloured 2D. Swapping `render/` for a 3D view is an additive change.
+The target is photographic, not stylised. The architecture made that an
+additive change, exactly as intended: adding `render3d/` did not touch a line
+of `core/`, `buildings/`, `wildlife/` or `game/`, and the 2D prototype in
+`render/` still runs off the same simulation.
 
-The plan:
+What is in:
 
-- **Godot 4 Forward+ renderer** with real PBR materials, an HDRI sky for
-  image-based lighting, SSAO, SSR, and depth of field.
-- **CC0 photoscanned textures** for terrain and foliage — Poly Haven and
-  ambientCG both publish 4K PBR sets under CC0, which means no licensing
-  restrictions and no attribution obligations.
-- **Hex tiles as instanced 3D meshes** via `MultiMeshInstance3D`, with terrain
-  and biome driving material blend weights rather than swapping meshes.
+- **Forward+ renderer** with real PBR materials, an HDRI sky per phase for
+  image-based lighting, SSAO, SSR and depth of field.
+- **CC0 photoscanned textures** for the ground, from ambientCG, loaded into a
+  texture array so all eight terrain types share one material.
+- **Tiles as instanced meshes** via `MultiMeshInstance3D` — one draw call for
+  all land and one for all water, regardless of map size, with terrain and
+  biome driving blend weights rather than swapping meshes.
 - **Vegetation** scattered per-tile with density driven by that tile's
   fertility and moisture, so growth is visible as it happens.
-- **Water** as a real shader — depth-based transparency, refraction,
+- **Water** as a real shader — depth-based transparency, refraction and
   screen-space reflection.
 
-The honest constraint: Forward+ with a full PBR pipeline is a desktop-class
-renderer, and iOS needs care. The mitigation is a quality tier — full pipeline
-on desktop and recent devices, reduced shadow and reflection budgets on
-mobile. This needs profiling on a real device early rather than late, because
+The honest constraint, unchanged: Forward+ with a full PBR pipeline is a
+desktop-class renderer, and iOS needs care. `render3d/quality.gd` holds the
+mitigation — full pipeline on desktop, reduced shadow, reflection and foliage
+budgets on mobile. **This has not been profiled on a real device yet**, and
 finding out at submission time that the frame budget does not hold is the
-expensive version of this discovery.
+expensive version of that discovery.
 
-Assets themselves have to be sourced — CC0 libraries, licensed packs, or
-commissioned work. That is a procurement task, not a coding one.
+What is still outside the code: Pablo's model, real building and animal
+meshes, and the ambience loops. All CC0 or CC-BY, all listed in `ASSETS.md`.
+That is a procurement task, not a coding one.
 
 **Shipping**
-- [ ] iOS export — **needs macOS + Xcode**, which Windows cannot do. Plan is
-      Codemagic or a GitHub Actions macOS runner building the Godot iOS export.
-- [ ] Apple Developer account ($99/yr)
+- [x] Apple Developer account
+- [x] CI pipeline written — `codemagic.yaml` builds the iOS export on a hosted
+      macOS runner, because iOS builds need Xcode and this is a Windows machine
+- [ ] Export presets — one manual pass in the Godot editor, named exactly `iOS`
+      and `Android`; `codemagic.yaml` refers to them by name
+- [ ] First TestFlight build, which is also the first real frame-rate reading
 - [ ] App Store assets: icon set, screenshots, privacy manifest
 
 ---

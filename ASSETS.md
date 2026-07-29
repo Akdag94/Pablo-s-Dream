@@ -37,19 +37,19 @@ I will set up the material and scale it correctly.
 
 ---
 
-## 2. Ground textures (optional — replaces procedural detail)
+## 2. Ground textures — done
 
-The terrain shader currently generates its own surface detail, so the game
-works with none of these. Adding real photoscanned PBR sets is what pushes it
-from "clean" to "photoreal".
+These are in and loaded through a texture array, so all eight terrain types
+share one material. Kept here as the record of what came from where, and so a
+replacement set drops into the same folders.
 
 **Source: [ambientCG](https://ambientcg.com)** — everything there is CC0.
-Download the **2K-JPG** or **4K-JPG** PBR package for each.
+The **2K-JPG** or **4K-JPG** PBR package for each.
 
 | Search on ambientCG | Use | Save as |
 |---|---|---|
 | `Ground037` | dead wasteland | `assets/terrain/wasteland/` |
-| `Ground048` | dry cracked earth | `assets/terrain/wasteland_alt/` |
+| `Ground048` | dry cracked earth | `assets/terrain/wasteland_dry/` |
 | `Grass004` | meadow | `assets/terrain/grass/` |
 | `Ground042` | forest floor | `assets/terrain/forest/` |
 | `Ground031` | marsh mud | `assets/terrain/wetland/` |
@@ -68,10 +68,12 @@ also fully CC0. Search terms there: `dry ground`, `forest floor`, `mud`,
 
 ---
 
-## 3. Sky
+## 3. Sky — done
 
-**Source: [Poly Haven HDRIs](https://polyhaven.com/hdris)** — CC0. Download
-**4K HDR**.
+In and switching with the phase. Same reason for keeping the table: it records
+the source and the filenames the code expects.
+
+**Source: [Poly Haven HDRIs](https://polyhaven.com/hdris)** — CC0, **4K HDR**.
 
 | Search | Use | Save as |
 |---|---|---|
@@ -79,9 +81,9 @@ also fully CC0. Search terms there: `dry ground`, `forest floor`, `mud`,
 | `belfast sunset` | the ending, after the airship leaves | `assets/sky/dusk.hdr` |
 | `overcast soil` | the opening, dead world | `assets/sky/overcast.hdr` |
 
-The scene builds a procedural sky right now. An HDRI replaces it and improves
-every material at once, because image-based lighting is most of what makes PBR
-look real.
+These do more work than anything else on the list: image-based lighting is
+most of what makes PBR look real, so one HDRI improves every surface at once.
+The overcast one opens the game and the dusk one closes it.
 
 ---
 
@@ -218,13 +220,20 @@ I can generate the icon and take the screenshots once the visuals are final.
 
 ## Priority
 
-If you only chase a few, get these in this order:
+Already in the repo and wired, so do not go looking for them again: the
+**font** (Source Sans 3), the **HDRI skies** (Poly Haven, one per phase), the
+**ground textures** (ambientCG, through a texture array), and the **UI sounds**
+(Kenney Interface Sounds).
+
+What is left, in the order worth chasing:
 
 1. **Pablo's model** — nothing else in the list matters as much
-2. **Font** — the game is Turkish and currently rendering with a default font
-3. **HDRI sky** — one file, improves every surface at once
-4. **Ground textures** — the real photoreal step
-5. Everything else
+2. **Ambience loops** — three files, §7, no code change to wire them
+3. **Animals** — ten species, currently coloured shapes
+4. **Buildings** — fourteen structures, same
+5. **Vegetation models** — the procedural foliage is decent, so this is
+   polish rather than a gap
+6. **Music** — optional, and quiet suits this game better than a score
 
 Tell me which ones you have and I will wire them in. If you would rather not
 hunt for any of it, say so and I will keep pushing the procedural side —
