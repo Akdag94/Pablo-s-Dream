@@ -10,13 +10,58 @@ Built with **Godot 4.4**, targeting desktop and mobile.
 
 ## Running it
 
-1. Install [Godot 4.4](https://godotengine.org/download) (the standard build —
+1. Install [Godot 4.7](https://godotengine.org/download) (the standard build —
    GDScript only, no C# needed).
 2. Open Godot → **Import** → select this folder's `project.godot`.
 3. Press **F5**.
 
-Controls: left-click a building in the bottom bar, then left-click a hex to
-place it. Drag to pan. Right-click a building to sell it back at 70%.
+There are two scenes:
+
+| Scene | What it is |
+|---|---|
+| `scenes/Main3D.tscn` | the real game — 3D, touch controls, shaders |
+| `scenes/Main.tscn` | flat-colour 2D prototype, kept for reading the simulation while tuning |
+
+**Controls (both mouse and touch):**
+
+| Action | Mouse | Touch |
+|---|---|---|
+| Select a hex | left click | tap |
+| Place | press **Yerleştir** | press **Yerleştir** |
+| Sell a building | — | long press |
+| Pan | drag / middle drag | one-finger drag |
+| Orbit | right drag | two-finger drag |
+| Zoom | wheel | pinch |
+
+Placement is deliberately two-step: tapping only moves the cursor, and a
+separate button commits. On a phone the finger covers the tile it is touching,
+so immediate placement costs the player buildings they did not mean to buy.
+
+## Tests
+
+```bash
+godot --headless --script res://tests/headless_run.gd     # full phase chain
+godot --headless --script res://tests/save_roundtrip.gd   # save/load fidelity
+```
+
+The first one plays a whole run with a crude bot and asserts every phase is
+reachable, the machines can all be reclaimed, and the land survives their
+removal. It has caught six real balance bugs so far — it is the reason the
+biome bands are tuned the way they are.
+
+## Building for iOS and Android
+
+`codemagic.yaml` drives CI. iOS builds need macOS and Xcode, which Windows
+cannot do, so the pipeline runs on a Codemagic mac runner.
+
+**One manual step is required first**, because export presets carry signing
+identities and cannot be safely generated blind: open the project in Godot →
+**Project → Export**, add an **iOS** preset and an **Android** preset, and fill
+in the bundle identifier and team id. The preset *names* must be exactly `iOS`
+and `Android` — `codemagic.yaml` refers to them by name.
+
+Then in Codemagic: connect the repo, add the App Store Connect integration,
+and create an environment group `godot` holding `GODOT_VERSION=4.7.1`.
 
 ---
 
@@ -131,16 +176,19 @@ it is being tuned. Art slots in without touching `core`.
 
 ## Roadmap
 
-**Next**
-- [ ] Migrate the view layer to 3D (see below). `core/`, `buildings/`,
-      `wildlife/` and `game/` are unaffected — only `render/` is replaced.
-- [ ] Pablo's model, animation set, and a camera that can follow him
-- [ ] Save/load (`user://` JSON of tile state + buildings + settled species)
-- [ ] Level definitions — hand-authored seeds and per-level objective sets
+**Done**
+- [x] 3D view layer — `core/`, `buildings/`, `wildlife/` and `game/` were not
+      touched, exactly as the architecture promised
+- [x] Save/load with a roundtrip test
+- [x] Touch controls: pinch-zoom, orbit, tap-to-select with a confirm step
+- [x] Procedural terrain and water shaders with parallax occlusion
+- [x] Turkish localisation with English alongside
 
-**Then**
-- [ ] Sound + ambient score
-- [ ] Touch controls: pinch-zoom, tap-to-place with a confirm step
+**Next**
+- [ ] Pablo's model — see `ASSETS.md`, the only wiring step is one field
+- [ ] Real textures, sky and vegetation — see `ASSETS.md`
+- [ ] Level definitions: hand-authored seeds and per-level objective sets
+- [ ] Sound and ambient score
 - [ ] Reclaim silos animating the haul-away rather than resolving instantly
 - [ ] Second and third region with their own biome sets and climate rules
 
