@@ -17,6 +17,13 @@ uniform float macro_strength : hint_range(0.0, 1.0) = 0.22;
 uniform float roughness_base : hint_range(0.0, 1.0) = 0.90;
 uniform float roughness_variation : hint_range(0.0, 1.0) = 0.18;
 
+// Parallax occlusion. Ray-marches the same noise the albedo uses, so pits and
+// clumps actually shift as the camera orbits instead of sliding with it. This
+// is what stops the ground reading as a printed texture on a flat plane.
+uniform bool parallax_enabled = true;
+uniform float parallax_depth : hint_range(0.0, 0.2) = 0.045;
+uniform int parallax_steps : hint_range(4, 32) = 16;
+
 // Slope darkening: the sides of each prism read as exposed earth.
 uniform vec3 side_tint : source_color = vec3(0.42, 0.34, 0.26);
 uniform float side_blend : hint_range(0.0, 1.0) = 0.65;
@@ -78,20 +85,66 @@ void vertex() {
 	v_world_normal = normalize((MODEL_MATRIX * vec4(NORMAL, 0.0)).xyz);
 }
 
+// Walk the view ray down through the height field and stop at the first step
+// that is below the surface. Everything after that point is occluded.
+vec3 apply_parallax(vec3 world_pos, vec3 view_dir, float upness) {
+	if (!parallax_enabled || parallax_depth <= 0.0) {
+		return world_pos;
+	}
+
+	// Grazing angles need more steps; head-on needs almost none.
+	float steps = mix(float(parallax_steps), 6.0, upness);
+	float step_count = max(steps, 4.0);
+	float layer_depth = 1.0 / step_count;
+
+	// Only the horizontal component displaces a mostly-flat top surface.
+	vec2 max_offset = view_dir.xz * parallax_depth;
+	vec2 step_offset = max_offset * layer_depth;
+
+	float current_layer = 0.0;
+	vec2 offset = vec2(0.0);
+	float height = 1.0 - fbm((world_pos + vec3(offset.x, 0.0, offset.y)) * detail_scale);
+
+	for (int i = 0; i < 32; i++) {
+		if (float(i) >= step_count || current_layer >= height) {
+			break;
+		}
+		offset += step_offset;
+		height = 1.0 - fbm((world_pos + vec3(offset.x, 0.0, offset.y)) * detail_scale);
+		current_layer += layer_depth;
+	}
+
+	// One linear refinement between the last two samples hides the stepping.
+	vec2 previous = offset - step_offset;
+	float after = height - current_layer;
+	float before = (1.0 - fbm((world_pos + vec3(previous.x, 0.0, previous.y)) * detail_scale))
+		- current_layer + layer_depth;
+	float weight = after / max(after - before, 0.0001);
+	offset = mix(offset, previous, clamp(weight, 0.0, 1.0));
+
+	return world_pos + vec3(offset.x, 0.0, offset.y);
+}
+
 void fragment() {
 	vec3 base = v_instance_color.rgb;
 
+	float upness = clamp(v_world_normal.y, 0.0, 1.0);
+
+	// Displace the sampling position before anything reads from it, so albedo,
+	// normals and roughness all agree on where the surface actually is.
+	vec3 view_dir = normalize(v_world_pos - CAMERA_POSITION_WORLD);
+	vec3 sample_pos = apply_parallax(v_world_pos, view_dir, upness);
+
 	// Two scales of variation: fine grain plus slow drifting patches, so the
 	// ground does not tile visibly across a large island.
-	float grain = fbm(v_world_pos * detail_scale);
-	float macro = fbm(v_world_pos * macro_scale + 17.3);
+	float grain = fbm(sample_pos * detail_scale);
+	float macro = fbm(sample_pos * macro_scale + 17.3);
 
 	vec3 albedo = base;
 	albedo *= mix(1.0 - detail_strength, 1.0 + detail_strength, grain);
 	albedo *= mix(1.0 - macro_strength, 1.0 + macro_strength, macro);
 
 	// Anything facing sideways is a cut edge of earth, not a top surface.
-	float upness = clamp(v_world_normal.y, 0.0, 1.0);
 	float side = 1.0 - smoothstep(0.25, 0.75, upness);
 	albedo = mix(albedo, albedo * side_tint * 2.0, side * side_blend);
 
@@ -100,8 +153,8 @@ void fragment() {
 	// Perturb the normal from the noise gradient. Sampling three offsets is
 	// cheaper here than carrying a normal map and looks the same at this scale.
 	float e = 0.06;
-	float nx = fbm((v_world_pos + vec3(e, 0.0, 0.0)) * detail_scale) - grain;
-	float nz = fbm((v_world_pos + vec3(0.0, 0.0, e)) * detail_scale) - grain;
+	float nx = fbm((sample_pos + vec3(e, 0.0, 0.0)) * detail_scale) - grain;
+	float nz = fbm((sample_pos + vec3(0.0, 0.0, e)) * detail_scale) - grain;
 	NORMAL_MAP = normalize(vec3(-nx * normal_strength, -nz * normal_strength, 1.0)) * 0.5 + 0.5;
 	NORMAL_MAP_DEPTH = mix(0.4, 1.0, upness);
 

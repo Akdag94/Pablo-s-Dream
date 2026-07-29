@@ -118,14 +118,22 @@ func _land_material() -> ShaderMaterial:
 			mat.set_shader_parameter("detail_scale", 4.0)
 			mat.set_shader_parameter("detail_strength", 0.20)
 			mat.set_shader_parameter("normal_strength", 0.5)
+			# Ray-marching per pixel is the single most expensive thing here.
+			mat.set_shader_parameter("parallax_enabled", false)
 		Quality.Tier.MEDIUM:
 			mat.set_shader_parameter("detail_scale", 5.5)
 			mat.set_shader_parameter("detail_strength", 0.26)
 			mat.set_shader_parameter("normal_strength", 0.7)
+			mat.set_shader_parameter("parallax_enabled", true)
+			mat.set_shader_parameter("parallax_steps", 10)
+			mat.set_shader_parameter("parallax_depth", 0.03)
 		Quality.Tier.HIGH:
 			mat.set_shader_parameter("detail_scale", 6.5)
 			mat.set_shader_parameter("detail_strength", 0.32)
 			mat.set_shader_parameter("normal_strength", 0.9)
+			mat.set_shader_parameter("parallax_enabled", true)
+			mat.set_shader_parameter("parallax_steps", 18)
+			mat.set_shader_parameter("parallax_depth", 0.05)
 	return mat
 
 
