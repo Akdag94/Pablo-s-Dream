@@ -1,0 +1,152 @@
+# Codemagic CI — builds the iOS and Android packages on a macOS runner.
+#
+# Why this exists: iOS builds require macOS and Xcode, which Windows cannot
+# do. Development happens on Windows; this pipeline produces the actual
+# shippable binaries.
+#
+# Before the first run, set these in the Codemagic UI:
+#   - App Store Connect integration (for signing and upload)
+#   - Environment group "godot" containing GODOT_VERSION
+#   - Environment group "ios_signing" with your bundle id and team id
+
+definitions:
+  godot_setup: &godot_setup
+    - name: Install Godot and the export templates
+      script: |
+        set -e
+        VERSION="${GODOT_VERSION:-4.7.1}"
+        BASE="https://github.com/godotengine/godot/releases/download/${VERSION}-stable"
+
+        curl -L -o godot.zip "${BASE}/Godot_v${VERSION}-stable_macos.universal.zip"
+        unzip -q godot.zip
+        mkdir -p /usr/local/bin
+        mv Godot.app/Contents/MacOS/Godot /usr/local/bin/godot
+        chmod +x /usr/local/bin/godot
+
+        curl -L -o templates.tpz "${BASE}/Godot_v${VERSION}-stable_export_templates.tpz"
+        unzip -q templates.tpz
+        TEMPLATE_DIR="$HOME/Library/Application Support/Godot/export_templates/${VERSION}.stable"
+        mkdir -p "$TEMPLATE_DIR"
+        mv templates/* "$TEMPLATE_DIR/"
+
+        godot --version
+
+    - name: Import the project
+      script: |
+        # Importing twice is deliberate: the first pass registers class_name
+        # scripts, the second resolves everything that depends on them.
+        godot --headless --import || true
+        godot --headless --import
+
+    - name: Run the test suite
+      script: |
+        set -e
+        godot --headless --script res://tests/headless_run.gd
+        godot --headless --script res://tests/save_roundtrip.gd
+
+workflows:
+  ios:
+    name: iOS
+    instance_type: mac_mini_m2
+    max_build_duration: 60
+    environment:
+      groups:
+        - godot
+        - ios_signing
+      xcode: latest
+      cocoapods: default
+    scripts:
+      - *godot_setup
+      - name: Export the Xcode project
+        script: |
+          set -e
+          mkdir -p build/ios
+          godot --headless --export-release "iOS" build/ios/PablosDream.ipa
+      - name: Archive and sign
+        script: |
+          set -e
+          xcode-project use-profiles
+          xcode-project build-ipa --project "build/ios/*.xcodeproj" --scheme "PablosDream"
+    artifacts:
+      - build/ios/**/*.ipa
+      - /tmp/xcodebuild_logs/*.log
+    publishing:
+      app_store_connect:
+        auth: integration
+        # Flip to true once the first build has been reviewed manually.
+        submit_to_testflight: false
+
+  android:
+    name: Android
+    instance_type: linux_x2
+    max_build_duration: 45
+    environment:
+      groups:
+        - godot
+      java: 17
+    scripts:
+      - name: Install Godot and the export templates
+        script: |
+          set -e
+          VERSION="${GODOT_VERSION:-4.7.1}"
+          BASE="https://github.com/godotengine/godot/releases/download/${VERSION}-stable"
+
+          curl -L -o godot.zip "${BASE}/Godot_v${VERSION}-stable_linux.x86_64.zip"
+          unzip -q godot.zip
+          mv Godot_v${VERSION}-stable_linux.x86_64 /usr/local/bin/godot
+          chmod +x /usr/local/bin/godot
+
+          curl -L -o templates.tpz "${BASE}/Godot_v${VERSION}-stable_export_templates.tpz"
+          unzip -q templates.tpz
+          TEMPLATE_DIR="$HOME/.local/share/godot/export_templates/${VERSION}.stable"
+          mkdir -p "$TEMPLATE_DIR"
+          mv templates/* "$TEMPLATE_DIR/"
+
+      - name: Import the project
+        script: |
+          godot --headless --import || true
+          godot --headless --import
+
+      - name: Run the test suite
+        script: |
+          set -e
+          godot --headless --script res://tests/headless_run.gd
+          godot --headless --script res://tests/save_roundtrip.gd
+
+      - name: Export the AAB
+        script: |
+          set -e
+          mkdir -p build/android
+          godot --headless --export-release "Android" build/android/PablosDream.aab
+    artifacts:
+      - build/android/*.aab
+
+  tests:
+    name: Tests
+    instance_type: linux_x2
+    max_build_duration: 20
+    environment:
+      groups:
+        - godot
+    triggering:
+      events:
+        - push
+        - pull_request
+    scripts:
+      - name: Install Godot
+        script: |
+          set -e
+          VERSION="${GODOT_VERSION:-4.7.1}"
+          BASE="https://github.com/godotengine/godot/releases/download/${VERSION}-stable"
+          curl -L -o godot.zip "${BASE}/Godot_v${VERSION}-stable_linux.x86_64.zip"
+          unzip -q godot.zip
+          mv Godot_v${VERSION}-stable_linux.x86_64 /usr/local/bin/godot
+          chmod +x /usr/local/bin/godot
+
+      - name: Import and test
+        script: |
+          set -e
+          godot --headless --import || true
+          godot --headless --import
+          godot --headless --script res://tests/headless_run.gd
+          godot --headless --script res://tests/save_roundtrip.gd

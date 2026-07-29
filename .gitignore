@@ -12,7 +12,9 @@
 *.exe
 *.pck
 *.zip
-export_presets.cfg
+
+# export_presets.cfg IS tracked — CI needs it to build. Signing identities are
+# injected by Codemagic at build time and must never be committed here.
 
 # OS noise
 Thumbs.db
