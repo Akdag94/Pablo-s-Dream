@@ -28,9 +28,22 @@ uniform int parallax_steps : hint_range(4, 32) = 16;
 uniform vec3 side_tint : source_color = vec3(0.42, 0.34, 0.26);
 uniform float side_blend : hint_range(0.0, 1.0) = 0.65;
 
+// Real photoscanned ground. When these are not supplied the shader falls back
+// to its own procedural surface, so the game still runs with no assets.
+uniform bool use_textures = false;
+uniform sampler2DArray albedo_array : source_color, filter_linear_mipmap_anisotropic, repeat_enable;
+uniform sampler2DArray normal_array : hint_normal, filter_linear_mipmap_anisotropic, repeat_enable;
+uniform sampler2DArray orm_array : hint_default_white, filter_linear_mipmap_anisotropic, repeat_enable;
+// World units per texture repeat. Tiling in world space rather than per hex
+// keeps the ground continuous across tile borders.
+uniform float texture_tiling : hint_range(0.05, 4.0) = 0.55;
+// How much of the biome colour is tinted back over the photo.
+uniform float tint_strength : hint_range(0.0, 1.0) = 0.35;
+
 varying vec3 v_world_pos;
 varying vec3 v_world_normal;
 varying vec4 v_instance_color;
+varying float v_layer;
 
 
 // -- noise ------------------------------------------------------------------
@@ -81,6 +94,8 @@ float fbm(vec3 p) {
 
 void vertex() {
 	v_instance_color = COLOR;
+	// x carries which texture layer this tile draws with.
+	v_layer = INSTANCE_CUSTOM.x;
 	v_world_pos = (MODEL_MATRIX * vec4(VERTEX, 1.0)).xyz;
 	v_world_normal = normalize((MODEL_MATRIX * vec4(NORMAL, 0.0)).xyz);
 }
@@ -140,9 +155,32 @@ void fragment() {
 	float grain = fbm(sample_pos * detail_scale);
 	float macro = fbm(sample_pos * macro_scale + 17.3);
 
-	vec3 albedo = base;
-	albedo *= mix(1.0 - detail_strength, 1.0 + detail_strength, grain);
-	albedo *= mix(1.0 - macro_strength, 1.0 + macro_strength, macro);
+	vec3 albedo;
+	float texture_roughness = roughness_base;
+	float occlusion = 1.0;
+	vec3 texture_normal = vec3(0.5, 0.5, 1.0);
+
+	if (use_textures) {
+		// Tile in world space so the ground runs continuously between hexes.
+		vec2 uv = sample_pos.xz * texture_tiling;
+		vec3 coord = vec3(uv, v_layer);
+
+		vec3 photo = texture(albedo_array, coord).rgb;
+		vec3 packed = texture(orm_array, coord).rgb;
+		texture_normal = texture(normal_array, coord).rgb;
+
+		texture_roughness = packed.r;
+		occlusion = packed.g;
+
+		// Break up the repeat with the same noise, and tint toward the biome
+		// colour so a green tile still reads as green.
+		photo *= mix(1.0 - macro_strength, 1.0 + macro_strength, macro);
+		albedo = mix(photo, photo * base * 2.0, tint_strength);
+	} else {
+		albedo = base;
+		albedo *= mix(1.0 - detail_strength, 1.0 + detail_strength, grain);
+		albedo *= mix(1.0 - macro_strength, 1.0 + macro_strength, macro);
+	}
 
 	// Anything facing sideways is a cut edge of earth, not a top surface.
 	float side = 1.0 - smoothstep(0.25, 0.75, upness);
@@ -152,13 +190,21 @@ void fragment() {
 
 	// Perturb the normal from the noise gradient. Sampling three offsets is
 	// cheaper here than carrying a normal map and looks the same at this scale.
-	float e = 0.06;
-	float nx = fbm((sample_pos + vec3(e, 0.0, 0.0)) * detail_scale) - grain;
-	float nz = fbm((sample_pos + vec3(0.0, 0.0, e)) * detail_scale) - grain;
-	NORMAL_MAP = normalize(vec3(-nx * normal_strength, -nz * normal_strength, 1.0)) * 0.5 + 0.5;
-	NORMAL_MAP_DEPTH = mix(0.4, 1.0, upness);
+	if (use_textures) {
+		NORMAL_MAP = texture_normal;
+		NORMAL_MAP_DEPTH = mix(0.5, 1.0, upness);
+		ROUGHNESS = clamp(texture_roughness, 0.05, 1.0);
+		AO = occlusion;
+		AO_LIGHT_AFFECT = 0.65;
+	} else {
+		float e = 0.06;
+		float nx = fbm((sample_pos + vec3(e, 0.0, 0.0)) * detail_scale) - grain;
+		float nz = fbm((sample_pos + vec3(0.0, 0.0, e)) * detail_scale) - grain;
+		NORMAL_MAP = normalize(vec3(-nx * normal_strength, -nz * normal_strength, 1.0)) * 0.5 + 0.5;
+		NORMAL_MAP_DEPTH = mix(0.4, 1.0, upness);
+		ROUGHNESS = clamp(roughness_base + (grain - 0.5) * roughness_variation, 0.05, 1.0);
+	}
 
-	ROUGHNESS = clamp(roughness_base + (grain - 0.5) * roughness_variation, 0.05, 1.0);
 	METALLIC = 0.0;
 	SPECULAR = 0.35;
 }
