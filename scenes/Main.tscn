@@ -1,0 +1,21 @@
+[gd_scene load_steps=3 format=3 uid="uid://hgt0rxtvfwth"]
+
+[ext_resource type="Script" uid="uid://day0rf7iq1x2k" path="res://scripts/render/world_view.gd" id="1_view"]
+[ext_resource type="Script" uid="uid://bwukfj4u5nkau" path="res://scripts/ui/hud.gd" id="2_hud"]
+
+[node name="Main" type="Node2D"]
+
+[node name="WorldView" type="Node2D" parent="."]
+script = ExtResource("1_view")
+
+[node name="UI" type="CanvasLayer" parent="."]
+
+[node name="HUD" type="Control" parent="UI"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("2_hud")
+world_view_path = NodePath("../../WorldView")
