@@ -27,6 +27,24 @@ const KIT := "res://assets/foliage/kenney_nature_kit/Models/GLTF format/"
 ## Grass carries the highest count because it is a carpet; forest the lowest
 ## because each model is large and they overlap anyway.
 const PLANTING := {
+	# Tier one. Deliberately thin — this is the first life to take hold, and it
+	# should look like it, so that specialising into tier two reads as a step up.
+	TileTypes.Biome.GREENERY: {
+		"models": ["grass.glb", "grass_leafs.glb"],
+		"per_tile": 11,
+	},
+	TileTypes.Biome.REED_BED: {
+		"models": ["grass_leafsLarge.glb", "plant_flatTall.glb", "grass_large.glb"],
+		"per_tile": 30,
+	},
+	TileTypes.Biome.TUNDRA: {
+		"models": ["grass.glb", "plant_bushSmall.glb", "rock_smallA.glb"],
+		"per_tile": 13,
+	},
+	TileTypes.Biome.LICHEN: {
+		"models": ["rock_smallFlatA.glb", "rock_smallFlatB.glb", "rock_smallC.glb"],
+		"per_tile": 9,
+	},
 	TileTypes.Biome.GRASS: {
 		"models": ["grass.glb", "grass_large.glb", "grass_leafs.glb",
 			"flower_yellowA.glb", "flower_redA.glb", "flower_purpleA.glb"],
@@ -62,6 +80,10 @@ const PLANTING := {
 ## authored around a 1-unit grid, which is far too big beside a 1-unit tile, so
 ## every mesh is measured and rescaled to the figure for its biome.
 const TARGET_HEIGHT := {
+	TileTypes.Biome.GREENERY: 0.11,
+	TileTypes.Biome.REED_BED: 0.36,
+	TileTypes.Biome.TUNDRA: 0.13,
+	TileTypes.Biome.LICHEN: 0.10,
 	TileTypes.Biome.GRASS: 0.16,
 	TileTypes.Biome.SHRUB: 0.22,
 	TileTypes.Biome.WETLAND: 0.30,
@@ -168,6 +190,10 @@ func _make_batch(biome: TileTypes.Biome, file: String, share: float,
 ## the "ice crystal" ring that appeared along the coast the first time these
 ## models went in. So each surface is repainted here instead.
 const LEAF_COLOUR := {
+	TileTypes.Biome.GREENERY: Color(0.55, 0.68, 0.32),
+	TileTypes.Biome.REED_BED: Color(0.31, 0.52, 0.27),
+	TileTypes.Biome.TUNDRA: Color(0.56, 0.58, 0.41),
+	TileTypes.Biome.LICHEN: Color(0.60, 0.63, 0.50),
 	TileTypes.Biome.GRASS: Color(0.42, 0.63, 0.22),
 	TileTypes.Biome.SHRUB: Color(0.47, 0.45, 0.23),
 	TileTypes.Biome.WETLAND: Color(0.25, 0.50, 0.31),

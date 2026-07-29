@@ -190,9 +190,11 @@ func _set_phase(next: Phase) -> void:
 func established_biomes() -> Array:
 	var counts := {}
 	for t in world.all_tiles():
-		# Beach forms on its own wherever sand meets water, so it does not
-		# count as something the player established.
-		if t.has_life() and t.biome != TileTypes.Biome.BEACH:
+		# Only tier-two biomes count. Plain greenery is the gateway every tile
+		# passes through, and beach and reef appear on their own wherever sand
+		# or warm shallows meet water — none of the three is something the
+		# player decided to make.
+		if TileTypes.is_specialised(t.biome):
 			counts[t.biome] = counts.get(t.biome, 0) + 1
 	var out := []
 	for b in counts:

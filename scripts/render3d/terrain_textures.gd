@@ -26,13 +26,22 @@ const LAYERS := [
 ]
 
 ## Which layer each biome draws with.
+##
+## Forest deliberately draws on grass rather than the forest-floor set. Bare
+## forest soil is brown, so a lush green tile turning to forest read as the
+## ground *dying* — the exact opposite of what just happened. The trees on top
+## carry the read instead, and the tint darkens the green underneath them.
 const BIOME_LAYER := {
 	TileTypes.Biome.NONE: 0,
+	TileTypes.Biome.GREENERY: 2,
 	TileTypes.Biome.GRASS: 2,
 	TileTypes.Biome.SHRUB: 1,
 	TileTypes.Biome.WETLAND: 4,
-	TileTypes.Biome.FOREST: 3,
+	TileTypes.Biome.REED_BED: 4,
+	TileTypes.Biome.FOREST: 2,
 	TileTypes.Biome.MANGROVE: 4,
+	TileTypes.Biome.TUNDRA: 2,
+	TileTypes.Biome.LICHEN: 5,
 	TileTypes.Biome.BEACH: 6,
 	TileTypes.Biome.REEF: 6,
 }

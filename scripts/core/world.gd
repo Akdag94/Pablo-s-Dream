@@ -372,6 +372,17 @@ func _settle_biomes() -> void:
 			tile_changed.emit(a)
 
 
+## Fertility at which bare ground first takes life, and at which green ground is
+## established enough to specialise. The gap between them is the two-step: the
+## player greens the land, then decides what it becomes.
+const GREENERY_FERTILITY := 0.25
+const SPECIALISE_FERTILITY := 0.42
+
+## Below this, ground is too cold for meadow or scrub and answers with tundra
+## and lichen instead.
+const COLD_LINE := 8.0
+
+
 ## Which living layer the current conditions support.
 ##
 ## Each biome occupies a *band*, not a threshold. Over-watering forest pushes
@@ -396,8 +407,14 @@ func _desired_biome(t: Tile) -> TileTypes.Biome:
 				return TileTypes.Biome.BEACH
 		return TileTypes.Biome.NONE
 
-	if t.fertility < 0.25:
+	if t.fertility < GREENERY_FERTILITY:
 		return TileTypes.Biome.NONE
+
+	# The tier gate. Ground has to be green, and richer than the bare minimum,
+	# before it can become anything in particular. A tile crossing the greenery
+	# line this tick spends at least one tick as plain greenery.
+	if not TileTypes.is_green(t.biome) or t.fertility < SPECIALISE_FERTILITY:
+		return TileTypes.Biome.GREENERY
 
 	# Wetland is a *place*, not just a moisture level — it has to border open
 	# water. Otherwise irrigators alone would turn the whole island to marsh.
@@ -415,12 +432,24 @@ func _desired_biome(t: Tile) -> TileTypes.Biome:
 		# turned to mangrove.
 		if touches_salt and not touches_fresh:
 			return TileTypes.Biome.MANGROVE
+		# A marsh left to mature on rich fresh soil closes over into reeds.
+		if touches_fresh and t.fertility >= 0.80:
+			return TileTypes.Biome.REED_BED
 		return TileTypes.Biome.WETLAND
 
 	# Forest wants rich soil and *moderate* water. Too wet and it drowns back
 	# to open ground; that upper bound is what makes over-irrigating a mistake.
 	if t.fertility >= 0.70 and t.moisture >= 0.30 and t.moisture < 0.70:
 		return TileTypes.Biome.FOREST
+
+	# Cold ground cannot hold meadow or scrub at all. This is what gives a polar
+	# region its own tier-two set instead of leaving it with two reachable
+	# biomes and an impossible objective: stone answers with lichen, soil with
+	# tundra, and both are only available while the map stays cold.
+	if t.temperature < COLD_LINE:
+		if t.terrain == TileTypes.Terrain.ROCK:
+			return TileTypes.Biome.LICHEN
+		return TileTypes.Biome.TUNDRA
 
 	# Warm and dry favours hardy scrub over lawn.
 	if t.moisture < 0.25 and t.temperature >= 19.0:

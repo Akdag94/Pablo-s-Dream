@@ -48,6 +48,10 @@ SPECIES_OTTER_DESC,"Kıyısı örtülü temiz su.","Clean water with cover on th
 SPECIES_REEF_FISH,Resif Balığı,Reef Fish
 SPECIES_REEF_FISH_DESC,"Yeniden canlanmış ılık sığlıklar.","Warm shallows that have come back to life."
 BIOME_NONE,Boş,Bare
+BIOME_GREENERY,Yeşillik,Greenery
+BIOME_REED_BED,Sazlık,Reed Bed
+BIOME_TUNDRA,Tundra,Tundra
+BIOME_LICHEN,Liken,Lichen
 BIOME_GRASS,Çayır,Grass
 BIOME_SHRUB,Çalılık,Shrub
 BIOME_WETLAND,Sulak Alan,Wetland
