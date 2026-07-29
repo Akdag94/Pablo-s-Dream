@@ -1,4 +1,4 @@
-extends Node3D
+﻿extends Node3D
 
 ## The hex highlight and footprint preview under the player's selection.
 ##
@@ -6,7 +6,7 @@ extends Node3D
 ## immediate: tapping only moves this cursor, and a separate confirm button
 ## commits. This node is what makes that intermediate state visible.
 
-const HEX_RADIUS := 1.0
+const TILE_SIZE := 1.0
 ## Lifted slightly so the ring never z-fights with the tile top.
 const HOVER_OFFSET := 0.06
 
@@ -54,23 +54,46 @@ func setup(p_world: World) -> void:
 	add_child(_footprint)
 
 
-## A flat hexagonal ring, drawn as a thin torus of six segments.
+## A square outline, built as four thin bars so it reads as a border rather
+## than a filled tile.
 func _ring_mesh() -> Mesh:
-	var m := TorusMesh.new()
-	m.inner_radius = HEX_RADIUS * 0.86
-	m.outer_radius = HEX_RADIUS * 0.98
-	m.rings = 6
-	m.ring_segments = 6
-	return m
+	var mesh := ArrayMesh.new()
+	var verts := PackedVector3Array()
+	var normals := PackedVector3Array()
+
+	var outer := TILE_SIZE * 0.5
+	var inner := TILE_SIZE * 0.5 - TILE_SIZE * 0.07
+
+	# Four quads forming a frame, each written as two triangles.
+	var edges := [
+		[Vector2(-outer, -outer), Vector2(outer, -inner)],
+		[Vector2(-outer, inner), Vector2(outer, outer)],
+		[Vector2(-outer, -inner), Vector2(-inner, inner)],
+		[Vector2(inner, -inner), Vector2(outer, inner)],
+	]
+
+	for e in edges:
+		var a: Vector2 = e[0]
+		var b: Vector2 = e[1]
+		var corners := [
+			Vector3(a.x, 0.0, a.y), Vector3(b.x, 0.0, a.y),
+			Vector3(b.x, 0.0, b.y), Vector3(a.x, 0.0, b.y),
+		]
+		for index in [0, 1, 2, 0, 2, 3]:
+			verts.append(corners[index])
+			normals.append(Vector3.UP)
+
+	var arrays := []
+	arrays.resize(Mesh.ARRAY_MAX)
+	arrays[Mesh.ARRAY_VERTEX] = verts
+	arrays[Mesh.ARRAY_NORMAL] = normals
+	mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)
+	return mesh
 
 
 func _disc_mesh() -> Mesh:
-	var m := CylinderMesh.new()
-	m.top_radius = HEX_RADIUS * 0.92
-	m.bottom_radius = HEX_RADIUS * 0.92
-	m.height = 0.02
-	m.radial_segments = 6
-	m.rings = 1
+	var m := BoxMesh.new()
+	m.size = Vector3(TILE_SIZE * 0.94, 0.02, TILE_SIZE * 0.94)
 	return m
 
 
@@ -84,7 +107,7 @@ func move_to(axial: Vector2i, def: BuildingDef, valid: bool) -> void:
 		clear()
 		return
 
-	var flat := Hex.to_pixel(axial, HEX_RADIUS)
+	var flat := Grid.to_pixel(axial, TILE_SIZE)
 	var height := _tile_top(tile)
 
 	_ring.visible = true
@@ -102,7 +125,7 @@ func _show_footprint(center: Vector2i, def: BuildingDef, valid: bool) -> void:
 
 	var radius: int = maxi(def.effect_radius, def.power_radius)
 	var cells: Array[Vector2i] = []
-	for a in Hex.in_radius(center, radius):
+	for a in Grid.in_radius(center, radius):
 		if world.has(a):
 			cells.append(a)
 
@@ -112,7 +135,7 @@ func _show_footprint(center: Vector2i, def: BuildingDef, valid: bool) -> void:
 
 	for i in cells.size():
 		var tile := world.get_tile(cells[i])
-		var flat := Hex.to_pixel(cells[i], HEX_RADIUS)
+		var flat := Grid.to_pixel(cells[i], TILE_SIZE)
 		var origin := Vector3(flat.x, _tile_top(tile) + HOVER_OFFSET * 0.5, flat.y)
 		mm.set_instance_transform(i, Transform3D(Basis(), origin))
 		mm.set_instance_color(i, tint)

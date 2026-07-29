@@ -1,4 +1,4 @@
-extends Node3D
+﻿extends Node3D
 
 ## Draws the hex world as real 3D geometry.
 ##
@@ -12,7 +12,7 @@ extends Node3D
 
 signal tile_picked(axial: Vector2i)
 
-const HEX_RADIUS := 1.0
+const TILE_SIZE := 1.0
 ## Vertical exaggeration. Real elevations are tiny next to a hex's width, and
 ## flat-looking terrain reads as a board game rather than a landscape.
 const HEIGHT_SCALE := 1.0
@@ -35,6 +35,7 @@ var world: World
 var state: GameState
 var quality: Quality
 
+var _textures: TerrainTextures
 var _land: MultiMeshInstance3D
 var _water: MultiMeshInstance3D
 var _land_tiles: Array[Tile] = []
@@ -52,6 +53,7 @@ func _ready() -> void:
 
 	_build_batches()
 	_apply_environment()
+	state.phase_changed.connect(set_sky_for_phase)
 	set_process(true)
 
 
@@ -71,11 +73,18 @@ func _process(delta: float) -> void:
 # ------------------------------------------------------------------ geometry
 
 func _build_batches() -> void:
-	# Split once: a hex only moves between the two batches if its terrain
+	# Load the ground textures once and share them across both materials.
+	_textures = TerrainTextures.new()
+	_textures.build()
+
+	# Split once: a tile only moves between the two batches if its terrain
 	# changes between wet and dry, which _refresh_instances handles by
 	# rebuilding both lists.
-	_land = _make_batch(_hex_prism_mesh(), _land_material())
-	_water = _make_batch(_hex_prism_mesh(), _water_material())
+	_land = _make_batch(_tile_mesh(), _land_material())
+	_water = _make_batch(_water_mesh(), _water_material())
+	# Waves push the surface up past the tile it belongs to, so let the water
+	# draw without writing depth against itself.
+	_water.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	add_child(_land)
 	add_child(_water)
 	_refresh_instances()
@@ -85,6 +94,8 @@ func _make_batch(mesh: Mesh, material: Material) -> MultiMeshInstance3D:
 	var mm := MultiMesh.new()
 	mm.transform_format = MultiMesh.TRANSFORM_3D
 	mm.use_colors = true
+	# x holds the texture layer this tile draws with.
+	mm.use_custom_data = true
 	mm.mesh = mesh
 
 	var node := MultiMeshInstance3D.new()
@@ -94,14 +105,23 @@ func _make_batch(mesh: Mesh, material: Material) -> MultiMeshInstance3D:
 	return node
 
 
-## A six-sided prism, flat-topped in the XZ plane.
-func _hex_prism_mesh() -> Mesh:
-	var m := CylinderMesh.new()
-	m.top_radius = HEX_RADIUS
-	m.bottom_radius = HEX_RADIUS
-	m.height = 1.0
-	m.radial_segments = 6
-	m.rings = 1
+## A unit cube. Tiles are exactly one unit across so the ground stays
+## continuous between them and world-space textures tile without seams.
+func _tile_mesh() -> Mesh:
+	var m := BoxMesh.new()
+	m.size = Vector3(TILE_SIZE, 1.0, TILE_SIZE)
+	return m
+
+
+## Water is a subdivided plane, not a box: Gerstner displacement moves
+## vertices, and a box has none between its corners for a wave to show in.
+## Subdivision is the one thing this shader genuinely needs geometry for.
+func _water_mesh() -> Mesh:
+	var m := PlaneMesh.new()
+	m.size = Vector2(TILE_SIZE, TILE_SIZE)
+	var steps := 2 if quality.tier == Quality.Tier.LOW else 6
+	m.subdivide_width = steps
+	m.subdivide_depth = steps
 	return m
 
 
@@ -111,6 +131,17 @@ func _hex_prism_mesh() -> Mesh:
 func _land_material() -> ShaderMaterial:
 	var mat := ShaderMaterial.new()
 	mat.shader = preload("res://shaders/terrain.gdshader")
+
+	# Real photoscanned ground when it is present, procedural when it is not.
+	if _textures != null and _textures.loaded:
+		mat.set_shader_parameter("use_textures", true)
+		mat.set_shader_parameter("albedo_array", _textures.albedo)
+		mat.set_shader_parameter("normal_array", _textures.normal)
+		mat.set_shader_parameter("orm_array", _textures.orm)
+		mat.set_shader_parameter("texture_tiling", 0.5)
+		mat.set_shader_parameter("tint_strength", 0.30)
+	else:
+		mat.set_shader_parameter("use_textures", false)
 
 	# Fine detail costs fill rate, so the weakest tier gets a calmer surface.
 	match quality.tier:
@@ -158,26 +189,35 @@ func _refresh_instances() -> void:
 		else:
 			_land_tiles.append(t)
 
-	_fill_batch(_land, _land_tiles)
-	_fill_batch(_water, _water_tiles)
+	_fill_batch(_land, _land_tiles, false)
+	_fill_batch(_water, _water_tiles, true)
 
 
-func _fill_batch(node: MultiMeshInstance3D, tiles: Array[Tile]) -> void:
+func _fill_batch(node: MultiMeshInstance3D, tiles: Array[Tile], is_water: bool) -> void:
 	var mm := node.multimesh
 	mm.instance_count = tiles.size()
 
 	for i in tiles.size():
 		var t := tiles[i]
 		var height: float = TERRAIN_HEIGHT.get(t.terrain, 0.2) * HEIGHT_SCALE
-		var flat := Hex.to_pixel(t.axial, HEX_RADIUS)
+		var flat := Grid.to_pixel(t.axial, TILE_SIZE)
 
-		# The prism is centred on its own origin, so shift it down by half its
-		# height to keep every tile sitting on the same base plane.
-		var basis := Basis().scaled(Vector3(1.0, maxf(absf(height), 0.05), 1.0))
-		var origin := Vector3(flat.x, height * 0.5, flat.y)
+		var basis: Basis
+		var origin: Vector3
+		if is_water:
+			# A flat plane sits directly at the surface height, unscaled.
+			basis = Basis()
+			origin = Vector3(flat.x, height, flat.y)
+		else:
+			# The box is centred on its own origin, so shift it down by half
+			# its height to keep every tile on the same base plane.
+			basis = Basis().scaled(Vector3(1.0, maxf(absf(height), 0.05), 1.0))
+			origin = Vector3(flat.x, height * 0.5, flat.y)
 
 		mm.set_instance_transform(i, Transform3D(basis, origin))
 		mm.set_instance_color(i, _tile_color(t))
+		# Custom data x is read by terrain.gdshader as the texture layer.
+		mm.set_instance_custom_data(i, Color(TerrainTextures.layer_for(t), 0, 0, 0))
 
 
 func _tile_color(t: Tile) -> Color:
@@ -189,6 +229,56 @@ func _tile_color(t: Tile) -> Color:
 
 # --------------------------------------------------------------- environment
 
+## Sky per phase. The world starts under heavy overcast and clears as it
+## recovers, so the lighting itself tracks the player's progress.
+const SKIES := {
+	"overcast": "res://assets/sky/overcast.hdr",
+	"day": "res://assets/sky/day.hdr",
+	"dusk": "res://assets/sky/dusk.hdr",
+}
+
+var _sky: Sky
+var _current_sky := ""
+
+
+func _load_sky(which: String = "overcast") -> Sky:
+	_sky = Sky.new()
+	_sky.radiance_size = Sky.RADIANCE_SIZE_128 \
+		if quality.tier == Quality.Tier.LOW else Sky.RADIANCE_SIZE_256
+	_apply_sky(which)
+	return _sky
+
+
+func _apply_sky(which: String) -> void:
+	if _current_sky == which or _sky == null:
+		return
+	var path: String = SKIES.get(which, SKIES["day"])
+	if not ResourceLoader.exists(path):
+		# No HDRI present — fall back to a generated sky rather than failing.
+		var fallback := ProceduralSkyMaterial.new()
+		fallback.sky_top_color = Color(0.35, 0.52, 0.78)
+		fallback.sky_horizon_color = Color(0.78, 0.82, 0.85)
+		_sky.sky_material = fallback
+		_current_sky = which
+		return
+
+	var mat := PanoramaSkyMaterial.new()
+	mat.panorama = load(path)
+	mat.energy_multiplier = 1.0
+	_sky.sky_material = mat
+	_current_sky = which
+
+
+## Called as the run progresses so the sky opens up with the landscape.
+func set_sky_for_phase(phase: int) -> void:
+	match phase:
+		GameState.Phase.RESTORE:
+			_apply_sky("overcast")
+		GameState.Phase.CULTIVATE, GameState.Phase.WILDLIFE:
+			_apply_sky("day")
+		_:
+			_apply_sky("dusk")
+
 func _apply_environment() -> void:
 	var sun := DirectionalLight3D.new()
 	sun.rotation_degrees = Vector3(-52.0, -35.0, 0.0)
@@ -199,15 +289,7 @@ func _apply_environment() -> void:
 
 	var env := Environment.new()
 	env.background_mode = Environment.BG_SKY
-
-	var sky := Sky.new()
-	var sky_mat := ProceduralSkyMaterial.new()
-	sky_mat.sky_top_color = Color(0.35, 0.52, 0.78)
-	sky_mat.sky_horizon_color = Color(0.78, 0.82, 0.85)
-	sky_mat.ground_bottom_color = Color(0.22, 0.24, 0.26)
-	sky_mat.ground_horizon_color = Color(0.66, 0.68, 0.68)
-	sky.sky_material = sky_mat
-	env.sky = sky
+	env.sky = _load_sky()
 
 	# Image-based lighting off the sky is what makes PBR materials read as
 	# real rather than plastic.
@@ -222,6 +304,7 @@ func _apply_environment() -> void:
 
 	var world_env := WorldEnvironment.new()
 	world_env.environment = env
+	world_env.name = "WorldEnvironment"
 
 	# Depth of field lives on the camera attributes, not the environment.
 	var attributes := CameraAttributesPractical.new()
@@ -249,7 +332,7 @@ func pick_tile(camera: Camera3D, screen_pos: Vector2):
 		return null
 
 	var hit := from + dir * distance
-	var axial := Hex.from_pixel(Vector2(hit.x, hit.z), HEX_RADIUS)
+	var axial := Grid.from_pixel(Vector2(hit.x, hit.z), TILE_SIZE)
 	if not world.has(axial):
 		return null
 	return axial

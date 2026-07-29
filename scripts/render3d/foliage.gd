@@ -1,4 +1,4 @@
-extends Node3D
+﻿extends Node3D
 
 ## Scatters vegetation across living tiles.
 ##
@@ -7,7 +7,7 @@ extends Node3D
 ## one MultiMesh batch, which keeps the whole island at a handful of draw
 ## calls no matter how green it gets.
 
-const HEX_RADIUS := 1.0
+const TILE_SIZE := 1.0
 ## Rebuilding every batch is cheap but not free; only do it a few times a
 ## second even if the world changes constantly.
 const REBUILD_INTERVAL := 0.6
@@ -107,12 +107,12 @@ func _fill(biome: TileTypes.Biome, node: MultiMeshInstance3D) -> void:
 			continue
 
 		scatter.seed = hash(t.axial)
-		var center := Hex.to_pixel(t.axial, HEX_RADIUS)
+		var center := Grid.to_pixel(t.axial, TILE_SIZE)
 		var top := _tile_top(t)
 
 		for i in count:
 			var angle := scatter.randf() * TAU
-			var radius := sqrt(scatter.randf()) * HEX_RADIUS * 0.78
+			var radius := sqrt(scatter.randf()) * TILE_SIZE * 0.78
 			var pos := Vector3(
 				center.x + cos(angle) * radius,
 				top,

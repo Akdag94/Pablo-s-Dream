@@ -1,4 +1,4 @@
-class_name Pablo
+﻿class_name Pablo
 extends RefCounted
 
 ## Pablo. He lives here.
@@ -50,7 +50,7 @@ func _init(p_world: World) -> void:
 ## Start him somewhere on solid ground near the middle of the map.
 func _find_start() -> Vector2i:
 	for r in range(0, world.radius):
-		for a in Hex.in_radius(Vector2i.ZERO, r):
+		for a in Grid.in_radius(Vector2i.ZERO, r):
 			var t := world.get_tile(a)
 			if t != null and not TileTypes.is_water(t.terrain) \
 					and t.terrain != TileTypes.Terrain.CLIFF:
@@ -159,8 +159,8 @@ func _refresh_mood() -> void:
 ## Pixel position for the 2D view.
 func pixel_position(hex_size: float) -> Vector2:
 	# Interpolate in pixel space so motion between hexes stays straight.
-	var a := Hex.to_pixel(_from, hex_size)
-	var b := Hex.to_pixel(_to, hex_size)
+	var a := Grid.to_pixel(_from, hex_size)
+	var b := Grid.to_pixel(_to, hex_size)
 	var t := clampf(_travel, 0.0, 1.0)
 	return a.lerp(b, t)
 

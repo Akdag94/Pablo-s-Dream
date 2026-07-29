@@ -1,4 +1,4 @@
-class_name Building
+﻿class_name Building
 extends RefCounted
 
 ## A placed instance of a BuildingDef.
@@ -74,7 +74,7 @@ func reclaim_targets(world: World) -> Array:
 	var out: Array = []
 	if def.effect != BuildingDef.Effect.RECLAIM:
 		return out
-	for a in Hex.in_radius(axial, def.effect_radius):
+	for a in Grid.in_radius(axial, def.effect_radius):
 		var b = world.building_at(a)
 		if b != null and b != self and not b.reclaimed:
 			out.append(b)

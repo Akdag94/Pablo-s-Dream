@@ -1,4 +1,4 @@
-extends Node3D
+﻿extends Node3D
 
 ## Wires gestures to the camera, the build cursor and the game state.
 ##
@@ -97,7 +97,7 @@ func confirm_placement() -> bool:
 
 	if ok:
 		# Keep the tool selected — players place these in runs, not one at a
-		# time — but move the cursor off so the next tap picks a fresh hex.
+		# time — but move the cursor off so the next tap picks a fresh Grid.
 		_cursor.clear()
 	return ok
 

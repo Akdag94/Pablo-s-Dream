@@ -1,4 +1,4 @@
-class_name Quality
+﻿class_name Quality
 extends RefCounted
 
 ## Rendering budget, picked from what the device can actually sustain.
@@ -21,7 +21,7 @@ var shadows: bool = true
 var shadow_size: int = 4096
 ## Depth of field on the far edge of the map.
 var depth_of_field: bool = true
-## Scattered vegetation instances per living hex.
+## Scattered vegetation instances per living Grid.
 var foliage_per_tile: int = 6
 ## Render scale — below 1.0 renders small and upscales.
 var render_scale: float = 1.0

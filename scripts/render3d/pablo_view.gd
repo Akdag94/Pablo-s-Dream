@@ -1,4 +1,4 @@
-extends Node3D
+﻿extends Node3D
 
 ## Drives Pablo's model from the state machine in scripts/game/pablo.gd.
 ##
@@ -14,8 +14,8 @@ extends Node3D
 ## How quickly he turns to face where he is walking.
 @export var turn_speed: float = 6.0
 
-## Must match WorldView3D.HEX_RADIUS — both map hex space to metres.
-const HEX_RADIUS := 1.0
+## Must match WorldView3D.TILE_SIZE — both map hex space to metres.
+const TILE_SIZE := 1.0
 
 const ANIMATIONS := {
 	Pablo.Mood.WAITING: "idle",
@@ -85,7 +85,7 @@ func _find_animation_player(node: Node) -> AnimationPlayer:
 
 
 func _process(delta: float) -> void:
-	var flat := _pablo.pixel_position(HEX_RADIUS)
+	var flat := _pablo.pixel_position(TILE_SIZE)
 	# Sit him on top of whatever tile he is standing on.
 	position = Vector3(flat.x, _ground_height(), flat.y)
 

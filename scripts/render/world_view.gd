@@ -1,4 +1,4 @@
-extends Node2D
+﻿extends Node2D
 
 ## Draws the hex world and turns pointer input into build actions.
 ##
@@ -9,7 +9,7 @@ extends Node2D
 signal tile_hovered(axial: Vector2i)
 signal build_attempted(axial: Vector2i, ok: bool)
 
-const HEX_SIZE := 26.0
+const TILE_SIZE := 26.0
 const SIM_INTERVAL := 0.35
 
 @export var map_radius: int = 14
@@ -67,9 +67,9 @@ func _draw_wildlife() -> void:
 	for id in state.wildlife.settled:
 		var def: SpeciesDef = Bestiary.get_species(id)
 		var axial: Vector2i = state.wildlife.settled[id]
-		var center := Hex.to_pixel(axial, HEX_SIZE) + _camera_offset
+		var center := Grid.to_pixel(axial, TILE_SIZE) + _camera_offset
 		# A small diamond, so animals never read as buildings.
-		var r := HEX_SIZE * 0.30
+		var r := TILE_SIZE * 0.30
 		var pts := PackedVector2Array([
 			center + Vector2(0, -r), center + Vector2(r, 0),
 			center + Vector2(0, r), center + Vector2(-r, 0),
@@ -79,18 +79,18 @@ func _draw_wildlife() -> void:
 
 func _draw_pablo() -> void:
 	var p: Pablo = state.pablo
-	var center := p.pixel_position(HEX_SIZE) + _camera_offset
+	var center := p.pixel_position(TILE_SIZE) + _camera_offset
 
 	# Placeholder marker. The 3D view drives a model from the same coordinates.
-	draw_circle(center, HEX_SIZE * 0.28, Color("fff3d6"))
-	draw_arc(center, HEX_SIZE * 0.28, 0.0, TAU, 24, Color(0.2, 0.15, 0.1, 0.7), 2.0)
+	draw_circle(center, TILE_SIZE * 0.28, Color("fff3d6"))
+	draw_arc(center, TILE_SIZE * 0.28, 0.0, TAU, 24, Color(0.2, 0.15, 0.1, 0.7), 2.0)
 	# A short tick showing which way he is heading.
-	draw_line(center, center + p.facing * HEX_SIZE * 0.45, Color("fff3d6"), 2.0)
+	draw_line(center, center + p.facing * TILE_SIZE * 0.45, Color("fff3d6"), 2.0)
 
 
 func _draw_tile(t: Tile) -> void:
-	var center := Hex.to_pixel(t.axial, HEX_SIZE) + _camera_offset
-	var pts := Hex.corners(center, HEX_SIZE - 1.0)
+	var center := Grid.to_pixel(t.axial, TILE_SIZE) + _camera_offset
+	var pts := Grid.corners(center, TILE_SIZE - 1.0)
 	var col := TileTypes.color_for(t.terrain, t.biome)
 
 	# Dry, poisoned ground reads darker so progress is visible at a glance.
@@ -109,8 +109,8 @@ func _draw_tile(t: Tile) -> void:
 
 
 func _draw_building(b: Building) -> void:
-	var center := Hex.to_pixel(b.axial, HEX_SIZE) + _camera_offset
-	var r := HEX_SIZE * 0.45
+	var center := Grid.to_pixel(b.axial, TILE_SIZE) + _camera_offset
+	var r := TILE_SIZE * 0.45
 	var col: Color = b.def.color
 	if not b.active and b.def.needs_power:
 		col = col.darkened(0.5)
@@ -121,8 +121,8 @@ func _draw_building(b: Building) -> void:
 func _draw_hover() -> void:
 	if not world.has(_hover):
 		return
-	var center := Hex.to_pixel(_hover, HEX_SIZE) + _camera_offset
-	var pts := Hex.corners(center, HEX_SIZE - 1.0)
+	var center := Grid.to_pixel(_hover, TILE_SIZE) + _camera_offset
+	var pts := Grid.corners(center, TILE_SIZE - 1.0)
 	draw_polyline(_closed(pts), Color(1, 1, 1, 0.8), 2.0)
 
 	if selected_def == null:
@@ -132,11 +132,11 @@ func _draw_hover() -> void:
 	var ok := _placement_ok(_hover)
 	var tint := Color(0.5, 1.0, 0.5, 0.18) if ok else Color(1.0, 0.4, 0.4, 0.18)
 	var r: int = maxi(selected_def.effect_radius, selected_def.power_radius)
-	for a in Hex.in_radius(_hover, r):
+	for a in Grid.in_radius(_hover, r):
 		if not world.has(a):
 			continue
-		var c := Hex.to_pixel(a, HEX_SIZE) + _camera_offset
-		draw_colored_polygon(Hex.corners(c, HEX_SIZE - 1.0), tint)
+		var c := Grid.to_pixel(a, TILE_SIZE) + _camera_offset
+		draw_colored_polygon(Grid.corners(c, TILE_SIZE - 1.0), tint)
 
 
 func _closed(pts: PackedVector2Array) -> PackedVector2Array:
@@ -193,7 +193,7 @@ func _unhandled_input(event: InputEvent) -> void:
 
 
 func _update_hover(screen_pos: Vector2) -> void:
-	var axial := Hex.from_pixel(screen_pos - _camera_offset, HEX_SIZE)
+	var axial := Grid.from_pixel(screen_pos - _camera_offset, TILE_SIZE)
 	if axial != _hover:
 		_hover = axial
 		tile_hovered.emit(axial)

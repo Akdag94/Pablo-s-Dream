@@ -1,4 +1,4 @@
-class_name World
+﻿class_name World
 extends RefCounted
 
 ## The hex grid plus the environmental simulation that runs over it.
@@ -51,7 +51,7 @@ func all_tiles() -> Array[Tile]:
 
 func neighbors_of(axial: Vector2i) -> Array[Tile]:
 	var out: Array[Tile] = []
-	for n in Hex.neighbors(axial):
+	for n in Grid.neighbors(axial):
 		var t: Tile = tiles.get(n)
 		if t != null:
 			out.append(t)
@@ -60,7 +60,7 @@ func neighbors_of(axial: Vector2i) -> Array[Tile]:
 
 func tiles_in_radius(center: Vector2i, r: int) -> Array[Tile]:
 	var out: Array[Tile] = []
-	for a in Hex.in_radius(center, r):
+	for a in Grid.in_radius(center, r):
 		var t: Tile = tiles.get(a)
 		if t != null:
 			out.append(t)
@@ -111,7 +111,7 @@ func restored_fraction() -> float:
 # ------------------------------------------------------------- world creation
 
 func _build_grid() -> void:
-	for a in Hex.in_radius(Vector2i.ZERO, radius):
+	for a in Grid.in_radius(Vector2i.ZERO, radius):
 		var t := Tile.new(a)
 		tiles[a] = t
 		_tile_list.append(t)
@@ -129,7 +129,7 @@ func _generate_terrain() -> void:
 
 	for a in tiles:
 		var t: Tile = tiles[a]
-		var dist := float(Hex.distance(a, Vector2i.ZERO)) / float(radius)
+		var dist := float(Grid.distance(a, Vector2i.ZERO)) / float(radius)
 		var h := noise.get_noise_2d(a.x * 10.0, a.y * 10.0)
 
 		# Push the rim of the map down into ocean so every island reads as one.
