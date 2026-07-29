@@ -27,11 +27,8 @@ var _target_pitch: float
 var _target_yaw: float
 var _target_origin: Vector3
 
-var _panning := false
-var _orbiting := false
-## Active touch points, for pinch-zoom on mobile.
-var _touches: Dictionary = {}
-var _last_pinch_distance := 0.0
+## How far the pivot may drift from the island before it is pulled back.
+var pan_limit: float = 40.0
 
 
 func _ready() -> void:
@@ -72,61 +69,6 @@ func _apply(weight: float) -> void:
 	camera.look_at(global_position, Vector3.UP)
 
 
-# --------------------------------------------------------------------- input
-
-func _unhandled_input(event: InputEvent) -> void:
-	if event is InputEventScreenTouch:
-		_handle_touch(event)
-	elif event is InputEventScreenDrag:
-		_handle_drag(event)
-	elif event is InputEventMouseButton:
-		_handle_mouse_button(event)
-	elif event is InputEventMouseMotion:
-		_handle_mouse_motion(event)
-
-
-func _handle_mouse_button(event: InputEventMouseButton) -> void:
-	match event.button_index:
-		MOUSE_BUTTON_WHEEL_UP:
-			zoom(-ZOOM_STEP)
-		MOUSE_BUTTON_WHEEL_DOWN:
-			zoom(ZOOM_STEP)
-		MOUSE_BUTTON_MIDDLE:
-			_panning = event.pressed
-		MOUSE_BUTTON_RIGHT:
-			_orbiting = event.pressed
-
-
-func _handle_mouse_motion(event: InputEventMouseMotion) -> void:
-	if _panning:
-		pan(event.relative)
-	elif _orbiting:
-		orbit(event.relative)
-
-
-func _handle_touch(event: InputEventScreenTouch) -> void:
-	if event.pressed:
-		_touches[event.index] = event.position
-	else:
-		_touches.erase(event.index)
-		_last_pinch_distance = 0.0
-
-
-func _handle_drag(event: InputEventScreenDrag) -> void:
-	_touches[event.index] = event.position
-
-	if _touches.size() == 1:
-		pan(event.relative)
-		return
-
-	if _touches.size() >= 2:
-		var points: Array = _touches.values()
-		var spread: float = points[0].distance_to(points[1])
-		if _last_pinch_distance > 0.0:
-			zoom((_last_pinch_distance - spread) * 0.05)
-		_last_pinch_distance = spread
-
-
 # ------------------------------------------------------------------ movement
 
 ## Slide the pivot across the ground, in the direction the camera is facing.
@@ -136,6 +78,13 @@ func pan(screen_delta: Vector2) -> void:
 	var right := Vector3(cos(y), 0.0, -sin(y))
 	var forward := Vector3(sin(y), 0.0, cos(y))
 	_target_origin += (-right * screen_delta.x + forward * screen_delta.y) * scale * 0.05
+
+	# Keep the island on screen — nothing out here is worth getting lost in.
+	var flat := Vector2(_target_origin.x, _target_origin.z)
+	if flat.length() > pan_limit:
+		flat = flat.normalized() * pan_limit
+		_target_origin.x = flat.x
+		_target_origin.z = flat.y
 
 
 func orbit(screen_delta: Vector2) -> void:
