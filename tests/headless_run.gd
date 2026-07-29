@@ -1,25 +1,55 @@
 extends SceneTree
 
-## Headless smoke test: build a world, play it roughly the way a player would,
-## and assert the whole phase chain can actually be reached.
+## Headless smoke test: play every shipping region roughly the way a player
+## would, and assert the whole phase chain can actually be reached in each one.
 ##
 ##   godot --headless --script res://tests/headless_run.gd
+##
+## Running all of them matters more than it looks. A region is only a handful of
+## numbers different from the last, and it is easy to write one whose objectives
+## cannot be met at all — four biomes on a map too cold to grow shrub, say. The
+## bot finding that out is much cheaper than the player finding it out.
 
 const MAX_TICKS := 4000
+
+## The band the bot tries to keep the land in, and the dials it reads to decide.
+## These are not game rules — they are what a competent player would aim for,
+## given that shrub needs 19 degrees and dry ground while forest drowns above
+## 0.70 moisture.
+const WET_ENOUGH := 0.50
+const WARM_ENOUGH := 19.0
+const COOL_ENOUGH := 23.0
 
 var failures: Array[String] = []
 var _turn := 0
 
+## level id -> tick each phase was reached on, for comparing pacing between
+## regions and between tuning passes.
+var _pacing: Dictionary = {}
+
 
 func _init() -> void:
-	print("— Pablo's Dream · headless run —\n")
+	print("— Pablo's Dream · headless run —")
 
-	var world := World.new(Levels.first())
-	var state := GameState.new(world)
+	for level in Levels.in_order():
+		print("\n==================== %s ====================" % level.id)
+		print("  seed %d · radius %d · %.0f C · target %d%% · %d biomes · %d species" % [
+			level.seed_value, level.radius, level.base_temperature,
+			int(level.restore_target * 100.0), level.required_biomes,
+			level.required_species,
+		])
 
-	_report_generation(world)
+		var world := World.new(level)
+		var state := GameState.new(world)
 
-	_play(world, state)
+		_check(world.level.id == level.id, "%s: world did not keep its level" % level.id)
+		_check(state.leaves == level.starting_leaves,
+			"%s: did not start with the level's leaves" % level.id)
+
+		_report_generation(world)
+		_play(world, state)
+
+	_report_pacing()
 
 	print("\n— result —")
 	if failures.is_empty():
@@ -36,25 +66,46 @@ func _check(condition: bool, message: String) -> void:
 		failures.append(message)
 
 
+## Side-by-side pacing, so "it goes too fast" becomes a number that can be
+## compared against the next tuning pass.
+func _report_pacing() -> void:
+	print("\n==================== pacing ====================")
+	print("  %-10s %8s %8s %8s" % ["level", "→cult", "→wild", "→recl"])
+	for id in _pacing:
+		var p: Dictionary = _pacing[id]
+		print("  %-10s %8s %8s %8s" % [
+			id,
+			p.get("CULTIVATE", "—"), p.get("WILDLIFE", "—"), p.get("RECLAIM", "—"),
+		])
+
+
 func _report_generation(world: World) -> void:
 	var counts := {}
 	for t in world.all_tiles():
 		counts[t.terrain] = counts.get(t.terrain, 0) + 1
 
-	print("world: %d hexes" % world.all_tiles().size())
+	var id := world.level.id
+	print("world: %d tiles" % world.all_tiles().size())
 	for terrain in counts:
 		print("  %-10s %d" % [TileTypes.Terrain.keys()[terrain], counts[terrain]])
 
-	_check(world.all_tiles().size() > 400, "grid looks too small")
-	_check(counts.get(TileTypes.Terrain.OCEAN, 0) > 0, "no ocean generated")
-	_check(counts.get(TileTypes.Terrain.WASTELAND, 0) > 0, "no buildable land generated")
-	_check(world.restored_fraction() == 0.0, "world did not start dead")
+	# A region can be shaped however it likes, but it has to give the player
+	# something to stand on and somewhere for water to come from.
+	_check(world.all_tiles().size() > 400, "%s: grid looks too small" % id)
+	_check(counts.get(TileTypes.Terrain.OCEAN, 0) > 0, "%s: no ocean generated" % id)
+	_check(counts.get(TileTypes.Terrain.WASTELAND, 0) > 40,
+		"%s: too little buildable land to play" % id)
+	_check(counts.get(TileTypes.Terrain.RIVERBED, 0) > 0,
+		"%s: no riverbed, so fresh water is unreachable" % id)
+	_check(world.restored_fraction() == 0.0, "%s: world did not start dead" % id)
 
 
 ## Greedily place whatever is affordable and legal, then let the sim run.
 func _play(world: World, state: GameState) -> void:
+	var id := world.level.id
 	var tick := 0
 	var last_phase := state.phase
+	_pacing[id] = {}
 	print("\nphase RESTORE")
 
 	while tick < MAX_TICKS and state.phase != GameState.Phase.RECLAIM:
@@ -64,6 +115,7 @@ func _play(world: World, state: GameState) -> void:
 
 		if state.phase != last_phase:
 			last_phase = state.phase
+			_pacing[id][GameState.Phase.keys()[state.phase]] = tick
 			print("  tick %-5d → %s   (%d%% alive, %d leaves, %d species)" % [
 				tick,
 				GameState.Phase.keys()[state.phase],
@@ -79,18 +131,18 @@ func _play(world: World, state: GameState) -> void:
 	print("  leaves     %d" % state.leaves)
 	print("  buildings  %d" % world.count_buildings())
 	print("  biomes     %s" % _biome_summary(world))
-	print("  fresh water %d hexes" % _count_terrain(world, TileTypes.Terrain.WATER))
+	print("  fresh water %d tiles" % _count_terrain(world, TileTypes.Terrain.WATER))
 	print("  avg temp   %.1f C" % _average_temperature(world))
 	print("  built      %s" % _building_summary(world))
 	print("  wildlife   %s" % str(state.wildlife.settled.keys()))
 	print("  pablo      %s at %s" % [state.pablo.mood_name(), state.pablo.position])
 
-	_check(world.restored_fraction() > 0.0, "nothing ever came alive")
+	_check(world.restored_fraction() > 0.0, "%s: nothing ever came alive" % id)
 	_check(state.phase != GameState.Phase.RESTORE,
-		"never cleared phase 1 in %d ticks" % MAX_TICKS)
-	_check(state.wildlife.count() > 0, "no species ever settled")
+		"%s: never cleared phase 1 in %d ticks" % [id, MAX_TICKS])
+	_check(state.wildlife.count() > 0, "%s: no species ever settled" % id)
 	_check(state.phase == GameState.Phase.RECLAIM,
-		"never reached the reclaim phase in %d ticks" % MAX_TICKS)
+		"%s: never reached the reclaim phase in %d ticks" % [id, MAX_TICKS])
 
 	if state.phase == GameState.Phase.RECLAIM:
 		_verify_reclaim(world, state)
@@ -100,7 +152,7 @@ func _play(world: World, state: GameState) -> void:
 ## out of powered ground, then spends on whatever it can reach.
 func _take_turn(world: World, state: GameState) -> void:
 	var order := ["purifier", "irrigator", "pump", "marsh_seeder",
-		"arboretum", "apiary", "solar_lens", "rain_caller"]
+		"arboretum", "apiary", "solar_lens", "condenser", "rain_caller"]
 
 	# Rotate the starting point. Without this the bot places the cheapest
 	# building forever and never gets round to pumps, so no fresh water is
@@ -109,11 +161,15 @@ func _take_turn(world: World, state: GameState) -> void:
 	var offset := _turn % order.size()
 	order = order.slice(offset) + order.slice(0, offset)
 
+	var climate := _climate(world)
+
 	for id in order:
 		var def: BuildingDef = Catalog.get_def(id)
 		if def == null or not state.can_afford(def):
 			continue
 		if def.tier > state._max_unlocked_tier():
+			continue
+		if not _wants(def, climate):
 			continue
 		var spot = _find_spot(world, state, def)
 		if spot != null:
@@ -130,7 +186,43 @@ func _take_turn(world: World, state: GameState) -> void:
 		state.try_place(turbine, site)
 
 
-## An empty buildable hex that no turbine currently reaches.
+## The two dials a player watches, averaged over land only. Ocean sits at full
+## moisture forever and would drown the reading.
+func _climate(world: World) -> Dictionary:
+	var moisture := 0.0
+	var temperature := 0.0
+	var n := 0
+	for t in world.all_tiles():
+		if TileTypes.is_water(t.terrain):
+			continue
+		moisture += t.moisture
+		temperature += t.temperature
+		n += 1
+	if n == 0:
+		return {"moisture": 0.0, "temperature": 0.0}
+	return {"moisture": moisture / float(n), "temperature": temperature / float(n)}
+
+
+## Would a player actually buy this right now?
+##
+## Watering a swamp or heating a map that is already hot is how a region locks
+## itself out of shrub and forest — both want moisture held *below* a ceiling —
+## and the bot used to do exactly that, then report the level as unwinnable.
+## Pumps are deliberately not gated: they create water *terrain*, which is a
+## separate resource that several species need and that no amount of rain
+## substitutes for.
+func _wants(def: BuildingDef, climate: Dictionary) -> bool:
+	match def.effect:
+		BuildingDef.Effect.IRRIGATE:
+			return climate.moisture < WET_ENOUGH
+		BuildingDef.Effect.WARM:
+			return climate.temperature < WARM_ENOUGH
+		BuildingDef.Effect.COOL:
+			return climate.temperature > COOL_ENOUGH
+	return true
+
+
+## An empty buildable tile that no turbine currently reaches.
 func _find_unpowered_site(world: World):
 	for t in world.all_tiles():
 		if not t.is_empty() or not TileTypes.is_buildable(t.terrain):
@@ -183,13 +275,14 @@ func _verify_reclaim(world: World, state: GameState) -> void:
 				world.remove_building(b.axial)
 		world.simulate()
 
+	var id := world.level.id
 	print("  buildings left  %d" % world.count_buildings())
-	_check(world.count_buildings() == 0, "could not clear every structure")
+	_check(world.count_buildings() == 0, "%s: could not clear every structure" % id)
 
 	# The land must survive the machines leaving.
 	var alive_after := world.restored_fraction()
 	print("  still alive     %d%%" % int(alive_after * 100.0))
-	_check(alive_after > 0.0, "the world died once the machines were removed")
+	_check(alive_after > 0.0, "%s: the world died once the machines were removed" % id)
 
 	state.pablo.update(1.0)
 	print("  pablo           %s" % state.pablo.mood_name())
