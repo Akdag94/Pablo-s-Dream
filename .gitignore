@@ -1,0 +1,20 @@
+# Godot 4 editor and import caches
+.godot/
+/android/
+/build/
+/export/
+*.translation
+
+# Export artifacts
+*.apk
+*.aab
+*.ipa
+*.exe
+*.pck
+*.zip
+export_presets.cfg
+
+# OS noise
+Thumbs.db
+desktop.ini
+.DS_Store
