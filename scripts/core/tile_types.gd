@@ -77,6 +77,16 @@ static func biome_value(biome: Biome) -> int:
 	return BIOME_VALUE.get(biome, 0)
 
 
+## Localised biome name, e.g. Biome.WETLAND -> "Sulak Alan".
+static func biome_name(biome: int) -> String:
+	return TranslationServer.translate("BIOME_" + Biome.keys()[biome])
+
+
+## Localised terrain name, e.g. Terrain.RIVERBED -> "Kuru Yatak".
+static func terrain_name(terrain: int) -> String:
+	return TranslationServer.translate("TERRAIN_" + Terrain.keys()[terrain])
+
+
 static func color_for(terrain: Terrain, biome: Biome) -> Color:
 	if biome != Biome.NONE and BIOME_COLOR.has(biome):
 		return BIOME_COLOR[biome]

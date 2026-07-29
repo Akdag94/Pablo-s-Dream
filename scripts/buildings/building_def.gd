@@ -61,6 +61,16 @@ func _init(p: Dictionary) -> void:
 	color = p.get("color", Color.WHITE)
 
 
+## Localised display name.
+func name_text() -> String:
+	return tr(display_name)
+
+
+## Localised one-line description.
+func description_text() -> String:
+	return tr(description)
+
+
 func can_sit_on(terrain: TileTypes.Terrain) -> bool:
 	if allowed_terrain.is_empty():
 		return TileTypes.is_buildable(terrain)

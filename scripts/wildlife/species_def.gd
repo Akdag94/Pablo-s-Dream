@@ -44,27 +44,31 @@ func _init(p: Dictionary) -> void:
 	color = p.get("color", Color.WHITE)
 
 
+## Localised display name.
+func name_text() -> String:
+	return tr(display_name)
+
+
+## Localised one-line description.
+func description_text() -> String:
+	return tr(description)
+
+
 ## Human-readable requirement list, for the UI.
 func requirement_lines() -> Array[String]:
 	var out: Array[String] = []
 	for biome in biome_needs:
-		out.append("%d × %s" % [biome_needs[biome], _biome_name(biome)])
+		out.append("%d × %s" % [biome_needs[biome], TileTypes.biome_name(biome)])
 	for terrain in terrain_needs:
-		out.append("%d × %s" % [terrain_needs[terrain], _terrain_name(terrain)])
+		out.append("%d × %s" % [terrain_needs[terrain], TileTypes.terrain_name(terrain)])
 	if min_temperature > -100.0:
-		out.append("at least %.0f°C" % min_temperature)
+		out.append(tr("REQ_TEMP_MIN").format([min_temperature], "{0}"))
 	if max_temperature < 100.0:
-		out.append("at most %.0f°C" % max_temperature)
+		out.append(tr("REQ_TEMP_MAX").format([max_temperature], "{0}"))
 	if needs_solitude:
-		out.append("no machinery nearby")
+		out.append(tr("REQ_SOLITUDE"))
 	if not needs_companion.is_empty():
-		out.append("%s already settled" % needs_companion)
+		var companion: SpeciesDef = Bestiary.get_species(needs_companion)
+		var label := companion.name_text() if companion != null else needs_companion
+		out.append(tr("REQ_COMPANION").format([label], "{0}"))
 	return out
-
-
-static func _biome_name(b: int) -> String:
-	return TileTypes.Biome.keys()[b].capitalize()
-
-
-static func _terrain_name(t: int) -> String:
-	return TileTypes.Terrain.keys()[t].capitalize()

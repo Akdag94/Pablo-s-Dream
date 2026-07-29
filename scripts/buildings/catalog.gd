@@ -4,7 +4,8 @@ extends RefCounted
 ## The full build menu for Pablo's Dream, grouped by phase.
 ##
 ## Tuning lives here and nowhere else — every number a designer would want to
-## twiddle is in this one file.
+## twiddle is in this one file. Names and descriptions are translation keys,
+## resolved through localization/strings.csv at display time.
 
 const E := BuildingDef.Effect
 const T := BuildingDef.Tier
@@ -39,8 +40,8 @@ static func _build() -> void:
 	# ---------------------------------------------------- phase 1: restoration
 	_add({
 		"id": "turbine",
-		"name": "Wind Turbine",
-		"description": "Supplies power to everything nearby. Nothing else runs without it.",
+		"name": "BUILDING_TURBINE",
+		"description": "BUILDING_TURBINE_DESC",
 		# Must cost something, or the map fills with free turbines.
 		"tier": T.RESTORE, "cost": 5,
 		"effect": E.POWER, "provides_power": true, "power_radius": 4,
@@ -49,16 +50,16 @@ static func _build() -> void:
 	})
 	_add({
 		"id": "purifier",
-		"name": "Soil Purifier",
-		"description": "Draws poison out of the ground, leaving soil that can hold roots.",
+		"name": "BUILDING_PURIFIER",
+		"description": "BUILDING_PURIFIER_DESC",
 		"tier": T.RESTORE, "cost": 3,
 		"effect": E.PURIFY, "radius": 2, "strength": 0.06,
 		"color": Color("c9a227"),
 	})
 	_add({
 		"id": "pump",
-		"name": "Water Pump",
-		"description": "Fills dry channels around it. Must stand beside open water.",
+		"name": "BUILDING_PUMP",
+		"description": "BUILDING_PUMP_DESC",
 		"tier": T.RESTORE, "cost": 4,
 		"effect": E.FLOOD, "radius": 2,
 		"requires_water": true,
@@ -66,24 +67,24 @@ static func _build() -> void:
 	})
 	_add({
 		"id": "irrigator",
-		"name": "Irrigator",
-		"description": "Spreads moisture into dry soil so greenery can take hold.",
+		"name": "BUILDING_IRRIGATOR",
+		"description": "BUILDING_IRRIGATOR_DESC",
 		"tier": T.RESTORE, "cost": 4,
 		"effect": E.IRRIGATE, "radius": 2, "strength": 0.08,
 		"color": Color("6fc2b0"),
 	})
 	_add({
 		"id": "excavator",
-		"name": "Excavator",
-		"description": "Carves the ground into a channel. One-shot, and it cannot be undone.",
+		"name": "BUILDING_EXCAVATOR",
+		"description": "BUILDING_EXCAVATOR_DESC",
 		"tier": T.RESTORE, "cost": 5,
 		"effect": E.EXCAVATE, "radius": 1,
 		"color": Color("b5773a"),
 	})
 	_add({
 		"id": "kiln",
-		"name": "Stone Kiln",
-		"description": "Raises bedrock into hills and cliffs, shaping where water will run.",
+		"name": "BUILDING_KILN",
+		"description": "BUILDING_KILN_DESC",
 		"tier": T.RESTORE, "cost": 5,
 		"effect": E.UPLIFT, "radius": 1,
 		"color": Color("8b8178"),
@@ -92,48 +93,48 @@ static func _build() -> void:
 	# ----------------------------------------------------- phase 2: cultivation
 	_add({
 		"id": "marsh_seeder",
-		"name": "Marsh Seeder",
-		"description": "Floods soil past saturation, turning green into wetland.",
+		"name": "BUILDING_MARSH_SEEDER",
+		"description": "BUILDING_MARSH_SEEDER_DESC",
 		"tier": T.CULTIVATE, "cost": 8,
 		"effect": E.IRRIGATE, "radius": 2, "strength": 0.16,
 		"color": Color("5f9e6e"),
 	})
 	_add({
 		"id": "arboretum",
-		"name": "Arboretum",
-		"description": "Enriches soil enough for mature trees to establish.",
+		"name": "BUILDING_ARBORETUM",
+		"description": "BUILDING_ARBORETUM_DESC",
 		"tier": T.CULTIVATE, "cost": 10,
 		"effect": E.PURIFY, "radius": 2, "strength": 0.12,
 		"color": Color("3f7a42"),
 	})
 	_add({
 		"id": "apiary",
-		"name": "Apiary",
-		"description": "Pollinates living ground. Does nothing where nothing grows yet.",
+		"name": "BUILDING_APIARY",
+		"description": "BUILDING_APIARY_DESC",
 		"tier": T.CULTIVATE, "cost": 8,
 		"effect": E.POLLINATE, "radius": 3, "strength": 0.10,
 		"color": Color("e0a83c"),
 	})
 	_add({
 		"id": "solar_lens",
-		"name": "Solar Lens",
-		"description": "Warms the surrounding air. Opens up scrubland and reefs.",
+		"name": "BUILDING_SOLAR_LENS",
+		"description": "BUILDING_SOLAR_LENS_DESC",
 		"tier": T.CULTIVATE, "cost": 9,
 		"effect": E.WARM, "radius": 3, "strength": 0.5,
 		"color": Color("e8743c"),
 	})
 	_add({
 		"id": "condenser",
-		"name": "Mist Condenser",
-		"description": "Cools a wide area, holding back the heat where you need it cold.",
+		"name": "BUILDING_CONDENSER",
+		"description": "BUILDING_CONDENSER_DESC",
 		"tier": T.CULTIVATE, "cost": 9,
 		"effect": E.COOL, "radius": 3, "strength": 0.5,
 		"color": Color("7fb8d8"),
 	})
 	_add({
 		"id": "rain_caller",
-		"name": "Rain Caller",
-		"description": "Wide, gentle moisture over everything in reach.",
+		"name": "BUILDING_RAIN_CALLER",
+		"description": "BUILDING_RAIN_CALLER_DESC",
 		"tier": T.CULTIVATE, "cost": 12,
 		"effect": E.IRRIGATE, "radius": 4, "strength": 0.05,
 		"color": Color("9fb8d8"),
@@ -142,8 +143,8 @@ static func _build() -> void:
 	# --------------------------------------------------------- phase 3: leaving
 	_add({
 		"id": "reclaim_silo",
-		"name": "Reclaim Silo",
-		"description": "Dismantles every structure in reach and stores the parts.",
+		"name": "BUILDING_RECLAIM_SILO",
+		"description": "BUILDING_RECLAIM_SILO_DESC",
 		# Free on purpose. The last phase is a spatial puzzle, not an economic
 		# one — being unable to afford to clean up would just be a dead end.
 		"tier": T.RECLAIM, "cost": 0,
@@ -153,8 +154,8 @@ static func _build() -> void:
 	})
 	_add({
 		"id": "airship",
-		"name": "Airship",
-		"description": "Your way out. It can only lift once every structure is gone.",
+		"name": "BUILDING_AIRSHIP",
+		"description": "BUILDING_AIRSHIP_DESC",
 		"tier": T.RECLAIM, "cost": 0,
 		"effect": E.AIRSHIP, "radius": 0,
 		"needs_power": false,

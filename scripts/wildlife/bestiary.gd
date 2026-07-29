@@ -4,7 +4,8 @@ extends RefCounted
 ## Every species that can find its way to the island, and what it needs.
 ##
 ## Like Catalog, this file is pure tuning — add a dictionary entry and the
-## species exists everywhere in the game.
+## species exists everywhere in the game. Names and descriptions are
+## translation keys, resolved through localization/strings.csv.
 
 const B := TileTypes.Biome
 const TR := TileTypes.Terrain
@@ -34,24 +35,24 @@ static func _add(p: Dictionary) -> void:
 static func _build() -> void:
 	_add({
 		"id": "frog",
-		"name": "Frog",
-		"description": "The first thing to return. Wants shallow water with something green around it.",
+		"name": "SPECIES_FROG",
+		"description": "SPECIES_FROG_DESC",
 		"radius": 3,
 		"biomes": {B.WETLAND: 10, B.GRASS: 4},
 		"color": Color("6fbf5a"),
 	})
 	_add({
 		"id": "deer",
-		"name": "Deer",
-		"description": "Needs open meadow, and a lot of it.",
+		"name": "SPECIES_DEER",
+		"description": "SPECIES_DEER_DESC",
 		"radius": 4,
 		"biomes": {B.GRASS: 20},
 		"color": Color("c08a52"),
 	})
 	_add({
 		"id": "heron",
-		"name": "Heron",
-		"description": "Stalks the edge where standing water meets reed.",
+		"name": "SPECIES_HERON",
+		"description": "SPECIES_HERON_DESC",
 		"radius": 4,
 		"biomes": {B.WETLAND: 12},
 		"terrain": {TR.WATER: 5},
@@ -59,8 +60,8 @@ static func _build() -> void:
 	})
 	_add({
 		"id": "beaver",
-		"name": "Beaver",
-		"description": "Wants running water with timber standing beside it.",
+		"name": "SPECIES_BEAVER",
+		"description": "SPECIES_BEAVER_DESC",
 		"radius": 4,
 		"biomes": {B.FOREST: 10},
 		"terrain": {TR.WATER: 8},
@@ -68,8 +69,8 @@ static func _build() -> void:
 	})
 	_add({
 		"id": "fox",
-		"name": "Fox",
-		"description": "Lives on the seam between meadow and treeline. Follows the deer.",
+		"name": "SPECIES_FOX",
+		"description": "SPECIES_FOX_DESC",
 		"radius": 4,
 		"biomes": {B.GRASS: 12, B.FOREST: 8},
 		"companion": "deer",
@@ -77,8 +78,8 @@ static func _build() -> void:
 	})
 	_add({
 		"id": "songbird",
-		"name": "Songbird",
-		"description": "Deep forest only, and only once the machines have gone quiet.",
+		"name": "SPECIES_SONGBIRD",
+		"description": "SPECIES_SONGBIRD_DESC",
 		"radius": 3,
 		"biomes": {B.FOREST: 16},
 		"solitude": true,
@@ -86,8 +87,8 @@ static func _build() -> void:
 	})
 	_add({
 		"id": "tortoise",
-		"name": "Tortoise",
-		"description": "Warm sand, close to the water's edge.",
+		"name": "SPECIES_TORTOISE",
+		"description": "SPECIES_TORTOISE_DESC",
 		"radius": 3,
 		"biomes": {B.BEACH: 8},
 		"min_temp": 18.0,
@@ -95,8 +96,8 @@ static func _build() -> void:
 	})
 	_add({
 		"id": "butterflies",
-		"name": "Butterflies",
-		"description": "Dry warm scrub in bloom.",
+		"name": "SPECIES_BUTTERFLIES",
+		"description": "SPECIES_BUTTERFLIES_DESC",
 		"radius": 3,
 		"biomes": {B.SHRUB: 12},
 		"min_temp": 20.0,
@@ -104,8 +105,8 @@ static func _build() -> void:
 	})
 	_add({
 		"id": "otter",
-		"name": "Otter",
-		"description": "Clean water with cover on the bank.",
+		"name": "SPECIES_OTTER",
+		"description": "SPECIES_OTTER_DESC",
 		"radius": 4,
 		"biomes": {B.FOREST: 8, B.WETLAND: 6},
 		"terrain": {TR.WATER: 10},
@@ -113,8 +114,8 @@ static func _build() -> void:
 	})
 	_add({
 		"id": "reef_fish",
-		"name": "Reef Fish",
-		"description": "Warm shallows that have come back to life.",
+		"name": "SPECIES_REEF_FISH",
+		"description": "SPECIES_REEF_FISH_DESC",
 		"radius": 3,
 		"biomes": {B.REEF: 10},
 		"min_temp": 18.0,

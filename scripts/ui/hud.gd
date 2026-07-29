@@ -87,7 +87,7 @@ func _build_bottom_bar() -> void:
 	panel.add_child(_build_bar)
 
 	_launch_button = Button.new()
-	_launch_button.text = "Launch"
+	_launch_button.text = tr("UI_LAUNCH")
 	_launch_button.visible = false
 	_launch_button.pressed.connect(_on_launch_pressed)
 	wrap.add_child(_launch_button)
@@ -119,8 +119,8 @@ func _refresh_wildlife() -> void:
 		child.queue_free()
 
 	var heading := Label.new()
-	heading.text = "Wildlife  %d / %d" % [
-		_state.wildlife.count(), GameState.REQUIRED_SPECIES
+	heading.text = "%s  %d / %d" % [
+		tr("UI_WILDLIFE"), _state.wildlife.count(), GameState.REQUIRED_SPECIES
 	]
 	heading.add_theme_font_size_override("font_size", 16)
 	_wildlife_list.add_child(heading)
@@ -128,7 +128,7 @@ func _refresh_wildlife() -> void:
 	for id in _state.wildlife.settled:
 		var def: SpeciesDef = Bestiary.get_species(id)
 		var row := Label.new()
-		row.text = "  ✓  %s" % def.display_name
+		row.text = "  ✓  %s" % def.name_text()
 		row.add_theme_color_override("font_color", def.color)
 		row.add_theme_font_size_override("font_size", 14)
 		_wildlife_list.add_child(row)
@@ -137,29 +137,22 @@ func _refresh_wildlife() -> void:
 	for entry in _state.wildlife.nearest_candidates(3):
 		var def: SpeciesDef = entry.def
 		var row := Label.new()
-		row.text = "  ·  %s  %d%%" % [def.display_name, int(entry.progress * 100.0)]
+		row.text = "  ·  %s  %%%d" % [def.name_text(), int(entry.progress * 100.0)]
 		row.add_theme_color_override("font_color", Color(1, 1, 1, 0.55))
 		row.add_theme_font_size_override("font_size", 13)
 		row.tooltip_text = "%s\n%s" % [
-			def.description, ", ".join(def.requirement_lines())
+			def.description_text(), ", ".join(def.requirement_lines())
 		]
 		_wildlife_list.add_child(row)
 
 
 func _refresh_pablo() -> void:
-	var mood := _state.pablo.mood
-	var line := ""
-	match mood:
-		Pablo.Mood.WAITING: line = "Pablo is waiting."
-		Pablo.Mood.CURIOUS: line = "Pablo is looking around."
-		Pablo.Mood.HAPPY: line = "Pablo is happy here."
-		Pablo.Mood.HOME: line = "Pablo is home."
-	_pablo_label.text = line
+	_pablo_label.text = tr("PABLO_" + Pablo.Mood.keys()[_state.pablo.mood])
 
 
 func _on_species_settled(id: String, _axial: Vector2i) -> void:
 	var def: SpeciesDef = Bestiary.get_species(id)
-	_tooltip.text = "%s has settled." % def.display_name
+	_tooltip.text = tr("UI_SETTLED").format([def.name_text()], "{0}")
 	_refresh_wildlife()
 
 
@@ -178,7 +171,7 @@ func _populate_build_bar() -> void:
 
 func _make_button(def: BuildingDef) -> Button:
 	var b := Button.new()
-	b.text = "%s\n%d" % [def.display_name, def.cost]
+	b.text = "%s\n%d" % [def.name_text(), def.cost]
 	b.custom_minimum_size = Vector2(112, 56)
 	b.toggle_mode = true
 	b.pressed.connect(func() -> void:
@@ -186,7 +179,7 @@ func _make_button(def: BuildingDef) -> Button:
 			if other is Button and other != b:
 				other.button_pressed = false
 		_view.select_building(def if b.button_pressed else null)
-		_tooltip.text = def.description if b.button_pressed else ""
+		_tooltip.text = def.description_text() if b.button_pressed else ""
 	)
 	return b
 
@@ -194,7 +187,7 @@ func _make_button(def: BuildingDef) -> Button:
 # --------------------------------------------------------------------- events
 
 func _on_leaves_changed(amount: int) -> void:
-	_leaf_label.text = "Leaves  %d" % amount
+	_leaf_label.text = "%s  %d" % [tr("UI_LEAVES"), amount]
 
 
 func _refresh_objective() -> void:
@@ -211,7 +204,7 @@ func _on_phase_changed(_phase: int) -> void:
 
 func _on_build_attempted(_axial: Vector2i, ok: bool) -> void:
 	if not ok:
-		_tooltip.text = "Cannot build there."
+		_tooltip.text = tr("UI_CANNOT_BUILD")
 
 
 func _on_launch_pressed() -> void:
@@ -222,6 +215,6 @@ func _on_run_finished(summary: Dictionary) -> void:
 	_build_bar.hide()
 	_launch_button.hide()
 	_tooltip.text = ""
-	_objective_label.text = "%d%% restored · %d species · nothing left behind." % [
+	_objective_label.text = tr("OBJ_SUMMARY").format([
 		int(summary.restored * 100.0), summary.species.size()
-	]
+	])

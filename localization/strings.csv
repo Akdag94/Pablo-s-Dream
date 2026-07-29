@@ -1,0 +1,84 @@
+keys,tr,en
+BUILDING_TURBINE,Rüzgâr Türbini,Wind Turbine
+BUILDING_TURBINE_DESC,"Çevresindeki her şeye enerji verir. O olmadan hiçbir şey çalışmaz.","Supplies power to everything nearby. Nothing else runs without it."
+BUILDING_PURIFIER,Toprak Arıtıcı,Soil Purifier
+BUILDING_PURIFIER_DESC,"Topraktaki zehri çeker; kök tutabilecek bir zemin bırakır.","Draws poison out of the ground, leaving soil that can hold roots."
+BUILDING_PUMP,Su Pompası,Water Pump
+BUILDING_PUMP_DESC,"Çevresindeki kuru yatakları doldurur. Açık suyun kıyısında durmalı.","Fills dry channels around it. Must stand beside open water."
+BUILDING_IRRIGATOR,Sulayıcı,Irrigator
+BUILDING_IRRIGATOR_DESC,"Kuru toprağa nem yayar; yeşilliğin tutunmasını sağlar.","Spreads moisture into dry soil so greenery can take hold."
+BUILDING_EXCAVATOR,Kazıcı,Excavator
+BUILDING_EXCAVATOR_DESC,"Zemini oyup yatak açar. Tek seferlik ve geri alınamaz.","Carves the ground into a channel. One-shot, and it cannot be undone."
+BUILDING_KILN,Taş Fırını,Stone Kiln
+BUILDING_KILN_DESC,"Ana kayayı tepelere ve yamaçlara kaldırır; suyun nereye akacağını belirler.","Raises bedrock into hills and cliffs, shaping where water will run."
+BUILDING_MARSH_SEEDER,Bataklık Ekici,Marsh Seeder
+BUILDING_MARSH_SEEDER_DESC,"Toprağı doygunluğun ötesine taşırır; yeşili sulak alana çevirir.","Floods soil past saturation, turning green into wetland."
+BUILDING_ARBORETUM,Ağaçlık,Arboretum
+BUILDING_ARBORETUM_DESC,"Toprağı olgun ağaçların tutunabileceği kadar zenginleştirir.","Enriches soil enough for mature trees to establish."
+BUILDING_APIARY,Arılık,Apiary
+BUILDING_APIARY_DESC,"Canlı toprağı tozlaştırır. Hiçbir şeyin yetişmediği yerde işe yaramaz.","Pollinates living ground. Does nothing where nothing grows yet."
+BUILDING_SOLAR_LENS,Güneş Merceği,Solar Lens
+BUILDING_SOLAR_LENS_DESC,"Çevredeki havayı ısıtır. Çalılığın ve resifin önünü açar.","Warms the surrounding air. Opens up scrubland and reefs."
+BUILDING_CONDENSER,Sis Yoğunlaştırıcı,Mist Condenser
+BUILDING_CONDENSER_DESC,"Geniş bir alanı serinletir; soğuk kalması gereken yeri korur.","Cools a wide area, holding back the heat where you need it cold."
+BUILDING_RAIN_CALLER,Yağmur Çağırıcı,Rain Caller
+BUILDING_RAIN_CALLER_DESC,"Menzilindeki her şeye geniş ve yumuşak bir nem.","Wide, gentle moisture over everything in reach."
+BUILDING_RECLAIM_SILO,Geri Kazanım Silosu,Reclaim Silo
+BUILDING_RECLAIM_SILO_DESC,"Menzilindeki her yapıyı söker ve parçalarını depolar.","Dismantles every structure in reach and stores the parts."
+BUILDING_AIRSHIP,Hava Gemisi,Airship
+BUILDING_AIRSHIP_DESC,"Çıkış yolun. Ancak her yapı gittiğinde havalanabilir.","Your way out. It can only lift once every structure is gone."
+SPECIES_FROG,Kurbağa,Frog
+SPECIES_FROG_DESC,"Geri dönen ilk canlı. Etrafında biraz yeşil olan sığ su ister.","The first thing to return. Wants shallow water with something green around it."
+SPECIES_DEER,Geyik,Deer
+SPECIES_DEER_DESC,"Açık çayır ister, hem de bolca.","Needs open meadow, and a lot of it."
+SPECIES_HERON,Balıkçıl,Heron
+SPECIES_HERON_DESC,"Durgun suyun sazlıkla buluştuğu kıyıda avlanır.","Stalks the edge where standing water meets reed."
+SPECIES_BEAVER,Kunduz,Beaver
+SPECIES_BEAVER_DESC,"Kıyısında ağaç olan akarsu ister.","Wants running water with timber standing beside it."
+SPECIES_FOX,Tilki,Fox
+SPECIES_FOX_DESC,"Çayırla orman sınırında yaşar. Geyiğin peşinden gelir.","Lives on the seam between meadow and treeline. Follows the deer."
+SPECIES_SONGBIRD,Ötücü Kuş,Songbird
+SPECIES_SONGBIRD_DESC,"Yalnızca derin orman, ve yalnızca makineler sustuktan sonra.","Deep forest only, and only once the machines have gone quiet."
+SPECIES_TORTOISE,Kaplumbağa,Tortoise
+SPECIES_TORTOISE_DESC,"Suyun kıyısına yakın, ılık kum.","Warm sand, close to the water's edge."
+SPECIES_BUTTERFLIES,Kelebekler,Butterflies
+SPECIES_BUTTERFLIES_DESC,"Çiçek açmış, kuru ve sıcak çalılık.","Dry warm scrub in bloom."
+SPECIES_OTTER,Su Samuru,Otter
+SPECIES_OTTER_DESC,"Kıyısı örtülü temiz su.","Clean water with cover on the bank."
+SPECIES_REEF_FISH,Resif Balığı,Reef Fish
+SPECIES_REEF_FISH_DESC,"Yeniden canlanmış ılık sığlıklar.","Warm shallows that have come back to life."
+BIOME_NONE,Boş,Bare
+BIOME_GRASS,Çayır,Grass
+BIOME_SHRUB,Çalılık,Shrub
+BIOME_WETLAND,Sulak Alan,Wetland
+BIOME_FOREST,Orman,Forest
+BIOME_MANGROVE,Mangrov,Mangrove
+BIOME_BEACH,Kumsal,Beach
+BIOME_REEF,Resif,Reef
+TERRAIN_WASTELAND,Çorak Toprak,Wasteland
+TERRAIN_ROCK,Kayalık,Rock
+TERRAIN_CLIFF,Yamaç,Cliff
+TERRAIN_SAND,Kum,Sand
+TERRAIN_RIVERBED,Kuru Yatak,Riverbed
+TERRAIN_WATER,Tatlı Su,Water
+TERRAIN_OCEAN,Deniz,Ocean
+UI_LEAVES,Yaprak,Leaves
+UI_WILDLIFE,Yaban Hayatı,Wildlife
+UI_LAUNCH,Havalan,Launch
+UI_CANNOT_BUILD,Buraya inşa edilemez.,Cannot build there.
+UI_SETTLED,{0} yerleşti.,{0} has settled.
+OBJ_RESTORE,Toprağı canlandır  —  %{0} / %{1},Bring the land back to life  —  {0}% / {1}%
+OBJ_CULTIVATE,Farklı biyomlar kur  —  {0} / {1},Establish distinct biomes  —  {0} / {1}
+OBJ_WILDLIFE,Adayı yaşanabilir kıl  —  {0} / {1} tür yerleşti,Make the island liveable  —  {0} / {1} species settled
+OBJ_RECLAIM,Her yapıyı geri topla  —  {0} kaldı,Reclaim every structure  —  {0} remaining
+OBJ_BOARD,Hava gemisine bin ve ayrıl.,Board the airship and leave.
+OBJ_DONE,Geriye hiçbir iz kalmadı.,Nothing left behind.
+OBJ_SUMMARY,"%{0} canlandı · {1} tür · geriye hiçbir iz kalmadı.","{0}% restored · {1} species · nothing left behind."
+PABLO_WAITING,Pablo bekliyor.,Pablo is waiting.
+PABLO_CURIOUS,Pablo etrafa bakınıyor.,Pablo is looking around.
+PABLO_HAPPY,Pablo burada mutlu.,Pablo is happy here.
+PABLO_HOME,Pablo evinde.,Pablo is home.
+REQ_TEMP_MIN,en az {0}°C,at least {0}°C
+REQ_TEMP_MAX,en fazla {0}°C,at most {0}°C
+REQ_SOLITUDE,yakınında makine olmamalı,no machinery nearby
+REQ_COMPANION,{0} önceden yerleşmiş olmalı,{0} already settled

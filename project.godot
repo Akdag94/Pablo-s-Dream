@@ -24,6 +24,12 @@ window/stretch/mode="canvas_items"
 window/stretch/aspect="expand"
 window/handheld/orientation=1
 
+[internationalization]
+
+locale/translations=PackedStringArray("res://localization/strings.tr.translation", "res://localization/strings.en.translation")
+locale/fallback="tr"
+locale/test="tr"
+
 [physics]
 
 common/physics_ticks_per_second=30

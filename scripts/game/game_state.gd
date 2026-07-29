@@ -258,22 +258,20 @@ func objective_text() -> String:
 		Phase.RESTORE:
 			var pct := int(world.restored_fraction() * 100.0)
 			var goal := int(RESTORE_TARGET * 100.0)
-			return "Bring the land back to life  —  %d%% / %d%%" % [pct, goal]
+			return tr("OBJ_RESTORE").format([pct, goal])
 		Phase.CULTIVATE:
 			var n := established_biomes().size()
-			return "Establish distinct biomes  —  %d / %d" % [n, REQUIRED_BIOMES]
+			return tr("OBJ_CULTIVATE").format([n, REQUIRED_BIOMES])
 		Phase.WILDLIFE:
-			return "Make the island liveable  —  %d / %d species settled" % [
-				wildlife.count(), REQUIRED_SPECIES
-			]
+			return tr("OBJ_WILDLIFE").format([wildlife.count(), REQUIRED_SPECIES])
 		Phase.RECLAIM:
 			var left := 0
 			for b in world.buildings.values():
 				if b.def.effect != BuildingDef.Effect.AIRSHIP:
 					left += 1
 			if left == 0:
-				return "Board the airship and leave."
-			return "Reclaim every structure  —  %d remaining" % left
+				return tr("OBJ_BOARD")
+			return tr("OBJ_RECLAIM").format([left])
 		Phase.DONE:
-			return "Nothing left behind."
+			return tr("OBJ_DONE")
 	return ""
