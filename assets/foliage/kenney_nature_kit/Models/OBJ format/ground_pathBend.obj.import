@@ -1,0 +1,25 @@
+[remap]
+
+importer="wavefront_obj"
+importer_version=1
+type="Mesh"
+uid="uid://dqh7f3gwy5h08"
+path="res://.godot/imported/ground_pathBend.obj-0bfa430a8efbb6a24cafd98f63f3912f.mesh"
+
+[deps]
+
+files=["res://.godot/imported/ground_pathBend.obj-0bfa430a8efbb6a24cafd98f63f3912f.mesh"]
+
+source_file="res://assets/foliage/kenney_nature_kit/Models/OBJ format/ground_pathBend.obj"
+dest_files=["res://.godot/imported/ground_pathBend.obj-0bfa430a8efbb6a24cafd98f63f3912f.mesh", "res://.godot/imported/ground_pathBend.obj-0bfa430a8efbb6a24cafd98f63f3912f.mesh"]
+
+[params]
+
+generate_tangents=true
+generate_lods=true
+generate_shadow_mesh=true
+generate_lightmap_uv2=false
+generate_lightmap_uv2_texel_size=0.2
+scale_mesh=Vector3(1, 1, 1)
+offset_mesh=Vector3(0, 0, 0)
+force_disable_mesh_compression=false

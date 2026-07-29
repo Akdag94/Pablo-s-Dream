@@ -1,0 +1,25 @@
+[remap]
+
+importer="wavefront_obj"
+importer_version=1
+type="Mesh"
+uid="uid://cd3ho2a1fi5br"
+path="res://.godot/imported/tree_pineRoundF.obj-e8200e8b9c1bca3cafa02566cd921a76.mesh"
+
+[deps]
+
+files=["res://.godot/imported/tree_pineRoundF.obj-e8200e8b9c1bca3cafa02566cd921a76.mesh"]
+
+source_file="res://assets/foliage/kenney_nature_kit/Models/OBJ format/tree_pineRoundF.obj"
+dest_files=["res://.godot/imported/tree_pineRoundF.obj-e8200e8b9c1bca3cafa02566cd921a76.mesh", "res://.godot/imported/tree_pineRoundF.obj-e8200e8b9c1bca3cafa02566cd921a76.mesh"]
+
+[params]
+
+generate_tangents=true
+generate_lods=true
+generate_shadow_mesh=true
+generate_lightmap_uv2=false
+generate_lightmap_uv2_texel_size=0.2
+scale_mesh=Vector3(1, 1, 1)
+offset_mesh=Vector3(0, 0, 0)
+force_disable_mesh_compression=false

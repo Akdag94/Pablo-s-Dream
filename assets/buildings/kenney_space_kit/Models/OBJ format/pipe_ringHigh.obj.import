@@ -1,0 +1,25 @@
+[remap]
+
+importer="wavefront_obj"
+importer_version=1
+type="Mesh"
+uid="uid://brfj8e1a2ow5o"
+path="res://.godot/imported/pipe_ringHigh.obj-0f2740285e73a8d921719b44b6c4234a.mesh"
+
+[deps]
+
+files=["res://.godot/imported/pipe_ringHigh.obj-0f2740285e73a8d921719b44b6c4234a.mesh"]
+
+source_file="res://assets/buildings/kenney_space_kit/Models/OBJ format/pipe_ringHigh.obj"
+dest_files=["res://.godot/imported/pipe_ringHigh.obj-0f2740285e73a8d921719b44b6c4234a.mesh", "res://.godot/imported/pipe_ringHigh.obj-0f2740285e73a8d921719b44b6c4234a.mesh"]
+
+[params]
+
+generate_tangents=true
+generate_lods=true
+generate_shadow_mesh=true
+generate_lightmap_uv2=false
+generate_lightmap_uv2_texel_size=0.2
+scale_mesh=Vector3(1, 1, 1)
+offset_mesh=Vector3(0, 0, 0)
+force_disable_mesh_compression=false
