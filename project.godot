@@ -20,6 +20,12 @@ run/main_scene="res://scenes/Main.tscn"
 config/features=PackedStringArray("4.7", "GL Compatibility")
 config/icon="res://icon.svg"
 
+[autoload]
+
+; One owner for every sound the game makes. Call sites say what happened, not
+; which file to play — see scripts/audio/sound_bank.gd for the mapping.
+Audio="*res://scripts/audio/audio_director.gd"
+
 [display]
 
 window/size/viewport_width=1280
