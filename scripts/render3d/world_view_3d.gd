@@ -105,24 +105,38 @@ func _hex_prism_mesh() -> Mesh:
 	return m
 
 
-func _land_material() -> StandardMaterial3D:
-	var mat := StandardMaterial3D.new()
-	# Per-instance colour carries terrain and biome until real textures land.
-	mat.vertex_color_use_as_albedo = true
-	mat.roughness = 0.92
-	mat.metallic = 0.0
+## Procedural ground. Grain, clumping and normal detail are generated in the
+## shader, so there are no texture files to download or to look wrong on one
+## device and right on another.
+func _land_material() -> ShaderMaterial:
+	var mat := ShaderMaterial.new()
+	mat.shader = preload("res://shaders/terrain.gdshader")
+
+	# Fine detail costs fill rate, so the weakest tier gets a calmer surface.
+	match quality.tier:
+		Quality.Tier.LOW:
+			mat.set_shader_parameter("detail_scale", 4.0)
+			mat.set_shader_parameter("detail_strength", 0.20)
+			mat.set_shader_parameter("normal_strength", 0.5)
+		Quality.Tier.MEDIUM:
+			mat.set_shader_parameter("detail_scale", 5.5)
+			mat.set_shader_parameter("detail_strength", 0.26)
+			mat.set_shader_parameter("normal_strength", 0.7)
+		Quality.Tier.HIGH:
+			mat.set_shader_parameter("detail_scale", 6.5)
+			mat.set_shader_parameter("detail_strength", 0.32)
+			mat.set_shader_parameter("normal_strength", 0.9)
 	return mat
 
 
-func _water_material() -> StandardMaterial3D:
-	var mat := StandardMaterial3D.new()
-	mat.vertex_color_use_as_albedo = true
-	mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-	mat.albedo_color = Color(1, 1, 1, 0.72)
-	mat.roughness = 0.06
-	mat.metallic = 0.25
-	mat.rim_enabled = true
-	mat.rim = 0.4
+func _water_material() -> ShaderMaterial:
+	var mat := ShaderMaterial.new()
+	mat.shader = preload("res://shaders/water.gdshader")
+	mat.set_shader_parameter("wave_speed", 0.28)
+	if quality.tier == Quality.Tier.LOW:
+		# Screen reads are the expensive part of this shader on mobile.
+		mat.set_shader_parameter("refraction_strength", 0.0)
+		mat.set_shader_parameter("wave_scale", 2.5)
 	return mat
 
 
