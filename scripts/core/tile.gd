@@ -1,12 +1,19 @@
 class_name Tile
 extends RefCounted
 
-## One hexagonal cell of the world.
+## One square cell of the world.
 
 var axial: Vector2i
 
 var terrain: TileTypes.Terrain = TileTypes.Terrain.WASTELAND
 var biome: TileTypes.Biome = TileTypes.Biome.NONE
+
+## How high this ground stands: 0.0 at the waterline, 1.0 at the highest point
+## on the map. Continuous on purpose — deriving height from `terrain` instead
+## gave every cell one of seven fixed levels, which read as a checkerboard of
+## random steps rather than as a landscape. No game rule reads this; it exists
+## so the renderer has a smooth surface to follow.
+var elevation: float = 0.0
 
 ## 0.0 = poisoned, 1.0 = rich loam. Scrubbers raise this.
 var fertility: float = 0.0

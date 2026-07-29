@@ -122,49 +122,134 @@ func _build_grid() -> void:
 		_tile_list.append(t)
 
 
+## Noise is sampled at tile coordinates, one step per tile.
+##
+## This used to sample at `a.x * 10.0`, which with a frequency of 0.09 put
+## neighbouring tiles nearly a whole feature-width apart in noise space — so
+## each cell drew an essentially unrelated height and the island came out as
+## salt-and-pepper rather than as terrain. Mean height difference between
+## touching tiles was 0.324 out of a ~1.4 range; sampled properly it is 0.122.
+## Every "one tile high, the next one low" complaint traced back to that line.
+const LAND_FREQUENCY := 0.055
+## Rivers follow the zero crossing of a second, even smoother field, which
+## gives one connected winding channel instead of scattered dots.
+const RIVER_FREQUENCY := 0.045
+
+## Ground above this stands as bare rock, and above the second as cliff. Read
+## against elevation *after* the island falloff, so they mean "high ground here"
+## rather than an absolute.
+const ROCK_LINE := 0.30
+const CLIFF_LINE := 0.52
+
+
 func _generate_terrain() -> void:
 	var noise := FastNoiseLite.new()
 	noise.seed = _rng.randi()
-	noise.frequency = 0.09
-	noise.fractal_octaves = 3
+	noise.frequency = LAND_FREQUENCY
+	noise.fractal_octaves = 4
+	# Each octave contributes less than the default 0.5, so the big shapes stay
+	# readable instead of being chewed up by fine detail.
+	noise.fractal_gain = 0.38
 
-	var detail := FastNoiseLite.new()
-	detail.seed = _rng.randi()
-	detail.frequency = 0.2
+	var rivers := FastNoiseLite.new()
+	rivers.seed = _rng.randi()
+	rivers.frequency = RIVER_FREQUENCY
+	rivers.fractal_octaves = 2
+
+	# Highest ground on the map, so elevation can be normalised to 0..1 above
+	# the waterline for the renderer.
+	var peak := level.sea_level
 
 	for a in tiles:
 		var t: Tile = tiles[a]
 		var dist := float(Grid.distance(a, Vector2i.ZERO)) / float(radius)
-		var h := noise.get_noise_2d(a.x * 10.0, a.y * 10.0)
+		var h := noise.get_noise_2d(a.x, a.y)
 
 		# Push the rim of the map down into ocean so every island reads as one.
 		# The exponent keeps the falloff concentrated at the very edge — a
 		# gentler curve drowned most of the buildable land.
-		var elevation := h - pow(dist, 3.0) * 0.9 + level.elevation_bias
+		var height := h - pow(dist, 3.0) * 0.9 + level.elevation_bias
 
 		# The shore band keeps its width relative to sea level, so raising the
 		# water does not swallow the beach along with the shallows.
 		var shore := level.sea_level + 0.15
 
-		if elevation < level.sea_level:
+		if height < level.sea_level:
 			t.terrain = TileTypes.Terrain.OCEAN
-		elif elevation < shore:
+		elif height < shore:
 			t.terrain = TileTypes.Terrain.SAND
-		elif elevation > 0.42:
+		elif height > CLIFF_LINE:
 			t.terrain = TileTypes.Terrain.CLIFF
-		elif elevation > 0.24:
+		elif height > ROCK_LINE:
 			t.terrain = TileTypes.Terrain.ROCK
 		else:
 			t.terrain = TileTypes.Terrain.WASTELAND
 
 		# Dry channels wandering through the interior, ready to be re-watered.
-		var d := detail.get_noise_2d(a.x * 10.0, a.y * 10.0)
-		if t.terrain == TileTypes.Terrain.WASTELAND and absf(d) < level.river_density:
+		# A river is the *valley* of the river field, and it only cuts through
+		# ground low enough to hold water — so channels run down toward the sea
+		# instead of striping across the peaks.
+		var r := rivers.get_noise_2d(a.x, a.y)
+		var carvable := t.terrain == TileTypes.Terrain.WASTELAND \
+			or t.terrain == TileTypes.Terrain.ROCK
+		if carvable and absf(r) < level.river_density and height < ROCK_LINE:
 			t.terrain = TileTypes.Terrain.RIVERBED
+			# Cut the bed below the ground it runs through, or the channel reads
+			# as a stripe of paint rather than as something water would follow.
+			height -= 0.06
+
+		t.elevation = height
+		peak = maxf(peak, height)
 
 		t.fertility = 0.0
 		t.moisture = 1.0 if TileTypes.is_water(t.terrain) else 0.0
 		t.temperature = level.base_temperature
+
+	_normalise_elevation(peak)
+
+
+## How many land steps the map is allowed. Two is what the reference uses: a
+## low shelf and a plateau above it, each large and flat, joined by a wall.
+## More than three and the island turns back into a staircase.
+const LAND_STEPS := 2
+
+
+## Rescale raw noise heights into 0..1 above the waterline, then quantise them
+## into a couple of broad steps.
+##
+## The quantising is the point. A continuous heightfield gives rolling hills,
+## which is not what this looks like — big flat plateaus meeting at a hard edge
+## is. Because the noise is now spatially coherent, neighbouring tiles land on
+## the same step almost always, so a wall appears only at a real boundary
+## instead of between every pair of cells.
+func _normalise_elevation(peak: float) -> void:
+	var span := maxf(peak - level.sea_level, 0.001)
+	for t in _tile_list:
+		if TileTypes.is_water(t.terrain):
+			# One flat sea. Ocean read as a field of separate boxes before this.
+			t.elevation = 0.0
+			continue
+		var normalised := clampf((t.elevation - level.sea_level) / span, 0.0, 1.0)
+		t.elevation = _step(normalised)
+
+
+## Snap to the nearest of LAND_STEPS + 1 levels, 0.0 .. 1.0 inclusive.
+func _step(value: float) -> float:
+	return roundf(value * float(LAND_STEPS)) / float(LAND_STEPS)
+
+
+## Terraforming has to move the ground with it, or an excavated channel sits at
+## plateau height and a kiln's new rock stays flat.
+func _elevation_after_terraforming(t: Tile, terrain: TileTypes.Terrain) -> float:
+	var step := 1.0 / float(LAND_STEPS)
+	match terrain:
+		TileTypes.Terrain.WATER, TileTypes.Terrain.OCEAN:
+			return 0.0
+		TileTypes.Terrain.RIVERBED, TileTypes.Terrain.SAND:
+			return maxf(0.0, t.elevation - step)
+		TileTypes.Terrain.ROCK, TileTypes.Terrain.CLIFF:
+			return minf(1.0, t.elevation + step)
+	return t.elevation
 
 
 # ------------------------------------------------------------------ mutations
@@ -174,6 +259,7 @@ func set_terrain(axial: Vector2i, terrain: TileTypes.Terrain) -> void:
 	if t == null or t.terrain == terrain:
 		return
 	t.terrain = terrain
+	t.elevation = _elevation_after_terraforming(t, terrain)
 	if TileTypes.is_water(terrain):
 		t.moisture = 1.0
 		t.biome = TileTypes.Biome.NONE
