@@ -78,7 +78,10 @@ wetland; push fertility higher instead and it becomes forest.
 
 That indirection is the whole game: you are gardening the *inputs*.
 
-### The three phases
+### The four phases
+
+Every threshold below is per region, set in `levels.gd`. The numbers shown are
+Yuva's, the opening island.
 
 | Phase | Goal | What unlocks |
 |---|---|---|
@@ -144,6 +147,8 @@ scripts/
     game_state.gd   phases, leaves, objectives, launch condition
     pablo.gd        his position, heading and mood — render-agnostic
     save_game.gd    serialise and restore a run
+    level_def.gd    one region: seed, climate, objectives
+    levels.gd       >>> ALL LEVEL TUNING LIVES HERE <<<
   wildlife/
     species_def.gd  what one species needs
     bestiary.gd     >>> ALL SPECIES TUNING LIVES HERE <<<
@@ -197,10 +202,27 @@ foliage, and touch controls with a confirm step. `scenes/Main.tscn` is the
 flat-colour 2D prototype, kept because the simulation is easier to read in
 solid colours while numbers are being tuned.
 
-Known debt: the balance was tuned against hexagons, where every tile had six
-neighbours. Squares have four for adjacency rules and eight for scattering, so
-diffusion and coverage both behave differently now and the phase pacing has
-not been re-tuned against them.
+Three regions ship: **Yuva** (temperate, the original island), **Sıcak Delta**
+(hot and wet, where the difficulty is restraint) and **Soğuk Yayla** (cold and
+stony, where warmth has to be built). All tuning is in `scripts/game/levels.gd`.
+
+Known debt, now with numbers. The balance was tuned against hexagons, where
+every tile had six neighbours; squares have four for adjacency and eight for
+scattering, so diffusion and coverage behave differently. The headless run
+prints how many ticks each phase took:
+
+```
+level         →cult    →wild    →recl
+home            104      105      106
+delta           101      115      144
+highland         64       65       96
+```
+
+On home, phase 2 clears one tick after phase 1 and phase 3 one tick after
+that — the biome and species gates are sitting *behind* the restore gate
+rather than beside it, so two of the four phases currently do not exist as
+play. The delta is the only region that paces properly. Re-tuning waits on a
+real playthrough, because the bot's opinion of pacing is not the player's.
 
 ---
 
@@ -218,13 +240,16 @@ not been re-tuned against them.
 - [x] HDRI skies that change with the phase
 - [x] Sound: nine event cues wired, pooled voices, ambience layer waiting on
       files
+- [x] Level definitions: fixed seeds, per-region climate and objectives, three
+      regions, each proven completable by the headless bot
 
 **Next**
 - [ ] Pablo's model — see `ASSETS.md`, the only wiring step is one field
 - [ ] Ambience loops and music — see `ASSETS.md` §7, no code change needed
-- [ ] Level definitions: hand-authored seeds and per-level objective sets
+- [ ] Re-tune phase pacing for square tiles — the measurement is above, the
+      decision needs a playthrough
+- [ ] A way to choose a region in game; today the scene carries a `level_id`
 - [ ] Reclaim silos animating the haul-away rather than resolving instantly
-- [ ] Second and third region with their own biome sets and climate rules
 
 ---
 
