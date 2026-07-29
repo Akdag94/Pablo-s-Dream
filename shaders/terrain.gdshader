@@ -24,9 +24,13 @@ uniform bool parallax_enabled = true;
 uniform float parallax_depth : hint_range(0.0, 0.2) = 0.045;
 uniform int parallax_steps : hint_range(4, 32) = 16;
 
-// Slope darkening: the sides of each prism read as exposed earth.
-uniform vec3 side_tint : source_color = vec3(0.42, 0.34, 0.26);
-uniform float side_blend : hint_range(0.0, 1.0) = 0.65;
+// Plateau walls. Where a step happens, the box's vertical sides are the cliff
+// face, and in the reference that face is nearly black with a lighter rim along
+// its top edge. A pale brown side made the steps read as mud smears instead of
+// as one solid plateau, which is most of why the terrain looked like loose
+// blocks rather than land.
+uniform vec3 side_tint : source_color = vec3(0.10, 0.09, 0.09);
+uniform float side_blend : hint_range(0.0, 1.0) = 0.94;
 
 // Real photoscanned ground. When these are not supplied the shader falls back
 // to its own procedural surface, so the game still runs with no assets.
