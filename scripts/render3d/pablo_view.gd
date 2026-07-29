@@ -98,11 +98,7 @@ func _process(delta: float) -> void:
 func _ground_height() -> float:
 	var axial := Vector2i(
 		roundi(_pablo.position.x), roundi(_pablo.position.y))
-	var tile: Tile = _view.world.get_tile(axial)
-	if tile == null:
-		return 0.0
-	var terrain_heights: Dictionary = _view.TERRAIN_HEIGHT
-	return terrain_heights.get(tile.terrain, 0.2)
+	return TerrainHeight.of(_view.world.get_tile(axial))
 
 
 func _on_mood_changed(mood: int) -> void:

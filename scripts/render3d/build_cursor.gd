@@ -161,17 +161,5 @@ func is_valid() -> bool:
 	return _valid
 
 
-## Top surface height of a tile, matching WorldView3D's elevation table.
 func _tile_top(tile: Tile) -> float:
-	if tile == null:
-		return 0.0
-	var heights: Dictionary = {
-		TileTypes.Terrain.OCEAN: -0.55,
-		TileTypes.Terrain.WATER: -0.15,
-		TileTypes.Terrain.RIVERBED: -0.12,
-		TileTypes.Terrain.SAND: 0.05,
-		TileTypes.Terrain.WASTELAND: 0.20,
-		TileTypes.Terrain.ROCK: 0.55,
-		TileTypes.Terrain.CLIFF: 1.15,
-	}
-	return heights.get(tile.terrain, 0.2)
+	return TerrainHeight.of(tile)

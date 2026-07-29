@@ -13,20 +13,6 @@
 signal tile_picked(axial: Vector2i)
 
 const TILE_SIZE := 1.0
-## Vertical exaggeration. Real elevations are tiny next to a hex's width, and
-## flat-looking terrain reads as a board game rather than a landscape.
-const HEIGHT_SCALE := 1.0
-
-## Metres of elevation per terrain type.
-const TERRAIN_HEIGHT := {
-	TileTypes.Terrain.OCEAN: -0.55,
-	TileTypes.Terrain.WATER: -0.15,
-	TileTypes.Terrain.RIVERBED: -0.12,
-	TileTypes.Terrain.SAND: 0.05,
-	TileTypes.Terrain.WASTELAND: 0.20,
-	TileTypes.Terrain.ROCK: 0.55,
-	TileTypes.Terrain.CLIFF: 1.15,
-}
 
 ## Which region to play. Map size and climate come with it — see `levels.gd`.
 @export var level_id: String = "home"
@@ -206,20 +192,22 @@ func _fill_batch(node: MultiMeshInstance3D, tiles: Array[Tile], is_water: bool) 
 
 	for i in tiles.size():
 		var t := tiles[i]
-		var height: float = TERRAIN_HEIGHT.get(t.terrain, 0.2) * HEIGHT_SCALE
+		var top := TerrainHeight.of(t)
 		var flat := Grid.to_pixel(t.axial, TILE_SIZE)
 
 		var basis: Basis
 		var origin: Vector3
 		if is_water:
-			# A flat plane sits directly at the surface height, unscaled.
+			# One flat plane for the whole sea, at the waterline.
 			basis = Basis()
-			origin = Vector3(flat.x, height, flat.y)
+			origin = Vector3(flat.x, top, flat.y)
 		else:
-			# The box is centred on its own origin, so shift it down by half
-			# its height to keep every tile on the same base plane.
-			basis = Basis().scaled(Vector3(1.0, maxf(absf(height), 0.05), 1.0))
-			origin = Vector3(flat.x, height * 0.5, flat.y)
+			# Land is a box hanging below its own surface. The box's sides are
+			# what become the plateau wall wherever a step happens, so it has
+			# to reach below the lowest neighbour it might border.
+			var thick := TerrainHeight.thickness(t)
+			basis = Basis().scaled(Vector3(1.0, thick, 1.0))
+			origin = Vector3(flat.x, top - thick * 0.5, flat.y)
 
 		mm.set_instance_transform(i, Transform3D(basis, origin))
 		mm.set_instance_color(i, _tile_color(t))
@@ -350,8 +338,4 @@ func pick_tile(camera: Camera3D, screen_pos: Vector2):
 ## re-deriving the elevation table.
 func tile_center(axial: Vector2i) -> Vector3:
 	var flat := Grid.to_pixel(axial, TILE_SIZE)
-	var tile := world.get_tile(axial)
-	var height := 0.2 * HEIGHT_SCALE
-	if tile != null:
-		height = TERRAIN_HEIGHT.get(tile.terrain, 0.2) * HEIGHT_SCALE
-	return Vector3(flat.x, height, flat.y)
+	return Vector3(flat.x, TerrainHeight.of(world.get_tile(axial)), flat.y)
