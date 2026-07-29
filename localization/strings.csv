@@ -66,6 +66,8 @@ UI_LEAVES,Yaprak,Leaves
 UI_WILDLIFE,Yaban Hayatı,Wildlife
 UI_LAUNCH,Havalan,Launch
 UI_CANNOT_BUILD,Buraya inşa edilemez.,Cannot build there.
+UI_CONFIRM,Yerleştir,Place
+UI_CANCEL,Vazgeç,Cancel
 UI_SETTLED,{0} yerleşti.,{0} has settled.
 OBJ_RESTORE,Toprağı canlandır  —  %{0} / %{1},Bring the land back to life  —  {0}% / {1}%
 OBJ_CULTIVATE,Farklı biyomlar kur  —  {0} / {1},Establish distinct biomes  —  {0} / {1}

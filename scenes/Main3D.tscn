@@ -1,10 +1,11 @@
-[gd_scene load_steps=6 format=3]
+[gd_scene load_steps=7 format=3]
 
 [ext_resource type="Script" path="res://scripts/render3d/world_view_3d.gd" id="1_world"]
 [ext_resource type="Script" path="res://scripts/render3d/camera_rig.gd" id="2_rig"]
 [ext_resource type="Script" path="res://scripts/render3d/pablo_view.gd" id="3_pablo"]
 [ext_resource type="Script" path="res://scripts/render3d/foliage.gd" id="4_foliage"]
 [ext_resource type="Script" path="res://scripts/render3d/game_controller_3d.gd" id="5_control"]
+[ext_resource type="Script" path="res://scripts/ui/hud_3d.gd" id="6_hud"]
 
 [node name="Main3D" type="Node3D"]
 
@@ -27,3 +28,15 @@ world_view_path = NodePath("../WorldView3D")
 script = ExtResource("5_control")
 world_view_path = NodePath("../WorldView3D")
 camera_rig_path = NodePath("../CameraRig")
+
+[node name="UI" type="CanvasLayer" parent="."]
+
+[node name="HUD" type="Control" parent="UI"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("6_hud")
+controller_path = NodePath("../../Controller")
