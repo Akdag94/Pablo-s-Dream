@@ -58,6 +58,19 @@ func _find_start() -> Vector2i:
 	return Vector2i.ZERO
 
 
+## Drop him straight onto a spot, cancelling any walk in progress. Used when
+## restoring a save — he should be where he was, not walking there.
+func teleport_to(p_position: Vector2, p_mood: Mood) -> void:
+	position = p_position
+	_from = Vector2i(roundi(p_position.x), roundi(p_position.y))
+	_to = _from
+	_travel = 0.0
+	_rest = 0.0
+	if mood != p_mood:
+		mood = p_mood
+		mood_changed.emit(mood)
+
+
 func update(delta: float) -> void:
 	_refresh_mood()
 

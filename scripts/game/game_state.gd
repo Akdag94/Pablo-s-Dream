@@ -70,6 +70,16 @@ func earn(amount: int) -> void:
 	leaves_changed.emit(leaves)
 
 
+## Treat every currently living tile as already paid for. Called after loading
+## a save, so restoring a run does not hand out its entire history of growth a
+## second time.
+func reset_growth_ledger() -> void:
+	_scored_tiles.clear()
+	for t in world.all_tiles():
+		if t.has_life():
+			_scored_tiles[t.axial] = t.score()
+
+
 ## Pay out for tiles that came alive since the last tick.
 func _collect_new_growth() -> void:
 	var gained := 0
